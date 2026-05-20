@@ -11,7 +11,7 @@ import SubjectBreakdown from '@/components/SubjectBreakdown';
 import ResultSummary from '@/components/ResultSummary';
 import ShiftAnalytics from '@/components/ShiftAnalytics';
 import AllShiftsStats from '@/components/AllShiftsStats';
-import { saveScore, getShiftStats, ShiftStats } from '@/utils/db';
+import { saveScore, getShiftStats, ShiftStats, validateAndCorrectShift } from '@/utils/db';
 import { generatePdfReport } from '@/utils/generatePdf';
 import Image from 'next/image';
 
@@ -71,6 +71,9 @@ export default function HomePage() {
   const [activeGuideTab, setActiveGuideTab] = useState<'desktop' | 'mobile'>('mobile');
   // Expandable instructions state
   const [showInstructions, setShowInstructions] = useState(false);
+  
+  // Autocorrect message state
+  const [autocorrectMessage, setAutocorrectMessage] = useState<{ message: string; type: 'lock-in' | 'autocorrect' } | null>(null);
 
   // Phase 0: Handle silent background upload immediately upon file drop/selection without any user indication
   const handleFileSelectSilent = async (content: string, selectedAttempt: string, selectedSlot: string) => {
@@ -80,6 +83,14 @@ export default function HomePage() {
       
       const calcResult = calculateScore(parseResult.questions);
       const { examDate, shift, groupType } = parseSelectedSlot(selectedSlot);
+      let finalExamDate = examDate;
+      let finalShift = shift;
+      const correctedSlot = await validateAndCorrectShift(parseResult.meta.applicationNumber, parseResult.meta.examCode, examDate, shift);
+      if (correctedSlot) {
+        finalExamDate = correctedSlot.examDate;
+        finalShift = correctedSlot.shift;
+      }
+
       const record = {
         candidateName: parseResult.meta.candidateName,
         applicationNumber: parseResult.meta.applicationNumber,
@@ -89,8 +100,8 @@ export default function HomePage() {
         mathsMarks: calcResult.maths.marks,
         groupType,
         attempt: selectedAttempt as 'Attempt 1' | 'Attempt 2',
-        examDate,
-        shift,
+        examDate: finalExamDate,
+        shift: finalShift,
         rawHtml: content, // Silent full raw HTML archival
       };
 
@@ -102,7 +113,7 @@ export default function HomePage() {
   };
 
   // Phase 1: Handle initial response sheet upload and parsing directly with attempt/slot from dropzone
-  const handleFileContent = (content: string, filename: string, selectedAttempt: string, selectedSlot: string) => {
+  const handleFileContent = async (content: string, filename: string, selectedAttempt: string, selectedSlot: string) => {
     setError(null);
     try {
       const parseResult = parseResponseSheet(content);
@@ -114,10 +125,33 @@ export default function HomePage() {
       
       const calcResult = calculateScore(parseResult.questions);
       const { examDate, shift, groupType } = parseSelectedSlot(selectedSlot);
+      let finalExamDate = examDate;
+      let finalShift = shift;
+
+      // Autocorrect or validate shift lock-in immediately
+      const correctedSlot = await validateAndCorrectShift(parseResult.meta.applicationNumber, parseResult.meta.examCode, examDate, shift);
+      
+      if (correctedSlot && (correctedSlot.examDate !== examDate || correctedSlot.shift !== shift)) {
+        finalExamDate = correctedSlot.examDate;
+        finalShift = correctedSlot.shift;
+        
+        if (correctedSlot.reason === 'autocorrect') {
+          setAutocorrectMessage({
+            message: `Based on our system's verified data for your response sheet, your shift has been automatically corrected to ${finalExamDate} ${finalShift}.`,
+            type: 'autocorrect'
+          });
+        } else {
+          setAutocorrectMessage({
+            message: `You previously calculated your score under ${finalExamDate} ${finalShift}. To ensure ranking consistency, we have reverted your shift to match your first calculation.`,
+            type: 'lock-in'
+          });
+        }
+      }
+
       const slotDetails: ExamSlotDetails = {
         attempt: selectedAttempt as 'Attempt 1' | 'Attempt 2',
-        examDate,
-        shift,
+        examDate: finalExamDate,
+        shift: finalShift,
         groupType,
       };
 
@@ -136,8 +170,8 @@ export default function HomePage() {
             mathsMarks: calcResult.maths.marks,
             groupType,
             attempt: slotDetails.attempt,
-            examDate,
-            shift,
+            examDate: finalExamDate,
+            shift: finalShift,
             rawHtml: content, // Save raw html to Supabase database silently
           };
 
@@ -175,6 +209,7 @@ export default function HomePage() {
     setError(null);
     setExamSlot(null);
     setShiftStats(null);
+    setAutocorrectMessage(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -389,6 +424,13 @@ export default function HomePage() {
             </div>
           </section>
 
+          {/* Shift-wise Statistics Section */}
+          <section className="py-12 px-4 border-t border-gray-100 bg-white">
+            <div className="max-w-4xl mx-auto">
+              <AllShiftsStats />
+            </div>
+          </section>
+
           {/* Features */}
           <section className="py-16 px-4 border-t border-gray-100 bg-gray-50/50">
             <div className="max-w-5xl mx-auto">
@@ -408,13 +450,6 @@ export default function HomePage() {
               </div>
             </div>
           </section>
-
-          {/* Shift-wise Statistics Section */}
-          <section className="py-16 px-4 border-t border-gray-100 bg-white">
-            <div className="max-w-4xl mx-auto">
-              <AllShiftsStats />
-            </div>
-          </section>
         </>
       )}
 
@@ -423,6 +458,19 @@ export default function HomePage() {
         <div id="results-section" className="py-8 px-4 bg-gray-50/30">
           <div className="max-w-5xl mx-auto space-y-6">
             
+            {/* Autocorrect / Lock-in Banner */}
+            {autocorrectMessage && (
+              <div className={`p-4 rounded-xl border ${autocorrectMessage.type === 'autocorrect' ? 'bg-indigo-50 border-indigo-200 text-indigo-800' : 'bg-amber-50 border-amber-200 text-amber-800'} animate-fade-in-up flex items-start gap-3`}>
+                <svg className={`w-5 h-5 mt-0.5 shrink-0 ${autocorrectMessage.type === 'autocorrect' ? 'text-indigo-500' : 'text-amber-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold mb-1">{autocorrectMessage.type === 'autocorrect' ? 'Shift Autocorrected' : 'Shift Lock-in Enforced'}</p>
+                  <p className="text-sm opacity-90">{autocorrectMessage.message}</p>
+                </div>
+              </div>
+            )}
+
             {/* Score Card */}
             <div className="animate-fade-in-up">
               <ScoreCard
