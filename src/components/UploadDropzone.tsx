@@ -34,9 +34,14 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function hasValidExtension(filename: string): boolean {
-  const lower = filename.toLowerCase();
-  return ['.html', '.htm', '.mhtml'].some((ext) => lower.endsWith(ext));
+function hasValidExtension(file: File): boolean {
+  const lower = file.name.toLowerCase();
+  if (['.html', '.htm', '.mhtml', '.xml'].some((ext) => lower.endsWith(ext))) return true;
+  // Mobile browsers often hide extensions and use content providers. Check MIME types as fallback.
+  if (file.type === 'text/html' || file.type === 'multipart/related' || file.type === 'message/rfc822') return true;
+  // If there's no extension (common on Android Content URIs), allow it and let the parser decide
+  if (!file.name.includes('.')) return true;
+  return false;
 }
 
 export default function UploadDropzone({ onFileContent, onFileSelectSilent }: UploadDropzoneProps) {
@@ -49,7 +54,7 @@ export default function UploadDropzone({ onFileContent, onFileSelectSilent }: Up
 
   const processFile = useCallback((file: File) => {
     setError(null);
-    if (!hasValidExtension(file.name)) {
+    if (!hasValidExtension(file)) {
       setError('Invalid file type. Please upload a .html, .htm, or .mhtml file.');
       setSelectedFile(null);
       return;

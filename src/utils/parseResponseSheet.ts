@@ -13,6 +13,10 @@ function decodeQuotedPrintable(input: string): string {
   return output;
 }
 
+function escapeRegExp(string: string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * Extracts the raw HTML content from an MHTML string.
  * If the input is not MHTML, it returns the input unchanged.
@@ -26,7 +30,8 @@ export function extractHtmlFromMhtml(mhtmlContent: string): string {
   }
   
   const boundary = boundaryMatch[1];
-  const parts = mhtmlContent.split(new RegExp(`--${boundary}`, 'i'));
+  const escapedBoundary = escapeRegExp(boundary);
+  const parts = mhtmlContent.split(new RegExp(`--${escapedBoundary}`, 'i'));
   
   // Look for the part that has Content-Type: text/html
   for (const part of parts) {
