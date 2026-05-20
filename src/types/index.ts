@@ -41,6 +41,7 @@ export interface ExamMeta {
 export interface ParseResult {
   questions: ParsedQuestion[];
   meta: ExamMeta;
+  htmlContent?: string;
 }
 
 export type AppState = 'idle' | 'parsing' | 'results' | 'error';

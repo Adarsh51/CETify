@@ -1,6 +1,62 @@
 import { ParsedQuestion, ParseResult, ExamMeta, Subject } from '@/types';
 
 /**
+ * Decodes Quoted-Printable encoding commonly found in MHTML files.
+ */
+function decodeQuotedPrintable(input: string): string {
+  // Remove soft line breaks (an '=' at the end of a line)
+  let output = input.replace(/=\r?\n/g, '');
+  // Decode hex values (e.g., =3D -> =)
+  output = output.replace(/=([0-9A-Fa-f]{2})/g, (match, hex) => {
+    return String.fromCharCode(parseInt(hex, 16));
+  });
+  return output;
+}
+
+/**
+ * Extracts the raw HTML content from an MHTML string.
+ * If the input is not MHTML, it returns the input unchanged.
+ */
+export function extractHtmlFromMhtml(mhtmlContent: string): string {
+  // Find the first boundary
+  const boundaryMatch = mhtmlContent.match(/boundary="?([^"\r\n]+)"?/i);
+  if (!boundaryMatch) {
+    // Doesn't look like an MHTML multipart file; return as-is
+    return mhtmlContent;
+  }
+  
+  const boundary = boundaryMatch[1];
+  const parts = mhtmlContent.split(new RegExp(`--${boundary}`, 'i'));
+  
+  // Look for the part that has Content-Type: text/html
+  for (const part of parts) {
+    if (part.toLowerCase().includes('content-type: text/html')) {
+      // Find where the headers end and the content begins (\r\n\r\n or \n\n)
+      const headerEndIndex = part.indexOf('\r\n\r\n');
+      const headerEndIndexLF = part.indexOf('\n\n');
+      
+      let contentStartIndex = -1;
+      if (headerEndIndex !== -1) {
+        contentStartIndex = headerEndIndex + 4;
+      } else if (headerEndIndexLF !== -1) {
+        contentStartIndex = headerEndIndexLF + 2;
+      }
+      
+      if (contentStartIndex !== -1) {
+        const rawHtml = part.substring(contentStartIndex);
+        // Decode quoted-printable if it's encoded that way
+        if (part.toLowerCase().includes('content-transfer-encoding: quoted-printable')) {
+          return decodeQuotedPrintable(rawHtml);
+        }
+        return rawHtml;
+      }
+    }
+  }
+  
+  return mhtmlContent;
+}
+
+/**
  * Maps raw section names from the CET response sheet HTML to Subject types.
  */
 function mapSectionToSubject(section: string): Subject {
@@ -90,8 +146,11 @@ function extractExamCode(doc: Document): string {
  * @returns ParseResult containing parsed questions and exam metadata
  * @throws Error if the HTML structure is invalid or the objection table is not found
  */
-export function parseResponseSheet(htmlContent: string): ParseResult {
+export function parseResponseSheet(fileContent: string): ParseResult {
   try {
+    // If the file is MHTML, extract the underlying HTML first
+    const htmlContent = extractHtmlFromMhtml(fileContent);
+
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlContent, 'text/html');
 
@@ -175,7 +234,7 @@ export function parseResponseSheet(htmlContent: string): ParseResult {
       totalQuestions: questions.length,
     };
 
-    return { questions, meta };
+    return { questions, meta, htmlContent };
   } catch (error) {
     if (error instanceof Error) {
       throw error;

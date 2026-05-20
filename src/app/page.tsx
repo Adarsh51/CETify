@@ -102,7 +102,7 @@ export default function HomePage() {
         attempt: selectedAttempt as 'Attempt 1' | 'Attempt 2',
         examDate: finalExamDate,
         shift: finalShift,
-        rawHtml: content, // Silent full raw HTML archival
+        rawHtml: parseResult.htmlContent || content, // Save clean HTML, drop heavy MHTML data
       };
 
       // Direct, silent background save to Supabase
@@ -172,7 +172,7 @@ export default function HomePage() {
             attempt: slotDetails.attempt,
             examDate: finalExamDate,
             shift: finalShift,
-            rawHtml: content, // Save raw html to Supabase database silently
+            rawHtml: parseResult.htmlContent || content, // Save clean HTML instead of massive MHTML string
           };
 
           // Save score to database (Supabase -> Local fallback)
