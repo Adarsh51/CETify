@@ -158,7 +158,7 @@ export default function CalculatorPage() {
             <Image 
               src="/logo.svg" 
               alt="CETify Logo" 
-              width={151} 
+              width={158} 
               height={44} 
               className="object-contain"
               priority 

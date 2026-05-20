@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 172 50" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 50" fill="none">
   <defs>
     <!-- Purple to Cyan/Blue Gradient to match the logo -->
     <linearGradient id="logo-grad" x1="0" y1="0" x2="50" y2="50" gradientUnits="userSpaceOnUse">
@@ -28,9 +28,6 @@
     <rect x="33" y="27" width="3.5" height="13.5" rx="1" fill="url(#logo-grad)" />
   </g>
 
-  <!-- Typography "CETify" (Using modern nested tspan to avoid text gaps or overlap regardless of fallback font) -->
-  <text x="56" y="37" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="36" letter-spacing="-1">
-    <tspan font-weight="800" fill="#0f172a">CET</tspan>
-    <tspan font-weight="500" fill="#4338ca">ify</tspan>
-  </text>
+  <!-- Typography "CETify" (Refined font weight contrast: 700 bold and 500 medium) -->
+  <text x="54" y="37" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="36" letter-spacing="-1.5"><tspan font-weight="700" fill="#0f172a">CET</tspan><tspan font-weight="500" fill="#4338ca">ify</tspan></text>
 </svg>

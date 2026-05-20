@@ -192,7 +192,7 @@ export default function HomePage() {
                 <Image 
                   src="/logo.svg" 
                   alt="CETify Logo" 
-                  width={206} 
+                  width={216} 
                   height={60} 
                   className="object-contain"
                   priority 

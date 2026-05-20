@@ -24,7 +24,7 @@ export default function Navbar() {
           <Image 
             src="/logo.svg" 
             alt="CETify Logo" 
-            width={124} 
+            width={130} 
             height={36} 
             className="object-contain max-h-[36px]"
             priority 
