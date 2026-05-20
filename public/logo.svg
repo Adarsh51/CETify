@@ -1,4 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" fill="none">
-  <text x="0" y="38" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="42" font-weight="800" fill="#0f172a" letter-spacing="-1">CET</text>
-  <text x="90" y="38" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="42" font-weight="500" fill="#4338ca" letter-spacing="-1">ify</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 172 50" fill="none">
+  <defs>
+    <!-- Purple to Cyan/Blue Gradient to match the logo -->
+    <linearGradient id="logo-grad" x1="0" y1="0" x2="50" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+  </defs>
+
+  <!-- Centered Icon Mark on the left (shifted slightly left for perfect balance) -->
+  <g transform="translate(-2, 0)">
+    <!-- Cap Diamond -->
+    <path d="M 28 5 L 50 16 L 28 27 L 6 16 Z" stroke="url(#logo-grad)" stroke-width="3" stroke-linejoin="round" fill="none"/>
+    
+    <!-- Tassel -->
+    <path d="M 10 18 L 10 28 M 8 28 L 12 28" stroke="url(#logo-grad)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+    
+    <!-- Shield/Crest curve underneath cap -->
+    <path d="M 16 23 C 16 35, 23 43, 28 45 C 33 43, 40 35, 40 23" stroke="url(#logo-grad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    
+    <!-- Bold Checkmark in the center -->
+    <path d="M 20 20 L 26 26 L 44 8" stroke="url(#logo-grad)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    
+    <!-- Bar charts/stats inside the lower crest -->
+    <rect x="20" y="32" width="3.5" height="8" rx="1" fill="url(#logo-grad)" />
+    <rect x="26.5" y="30" width="3.5" height="10.5" rx="1" fill="url(#logo-grad)" />
+    <rect x="33" y="27" width="3.5" height="13.5" rx="1" fill="url(#logo-grad)" />
+  </g>
+
+  <!-- Typography "CETify" (Using modern nested tspan to avoid text gaps or overlap regardless of fallback font) -->
+  <text x="56" y="37" font-family="'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="36" letter-spacing="-1">
+    <tspan font-weight="800" fill="#0f172a">CET</tspan>
+    <tspan font-weight="500" fill="#4338ca">ify</tspan>
+  </text>
 </svg>
