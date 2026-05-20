@@ -67,6 +67,11 @@ export default function HomePage() {
   const [examSlot, setExamSlot] = useState<ExamSlotDetails | null>(null);
   const [shiftStats, setShiftStats] = useState<ShiftStats | null>(null);
 
+  // Guide tab state ('desktop' | 'mobile')
+  const [activeGuideTab, setActiveGuideTab] = useState<'desktop' | 'mobile'>('mobile');
+  // Expandable instructions state
+  const [showInstructions, setShowInstructions] = useState(false);
+
   // Phase 0: Handle silent background upload immediately upon file drop/selection without any user indication
   const handleFileSelectSilent = async (content: string, selectedAttempt: string, selectedSlot: string) => {
     try {
@@ -229,10 +234,157 @@ export default function HomePage() {
               )}
 
               {(appState === 'idle' || appState === 'error') && (
-                <UploadDropzone 
-                  onFileContent={handleFileContent} 
-                  onFileSelectSilent={handleFileSelectSilent}
-                />
+                <>
+                  <UploadDropzone 
+                    onFileContent={handleFileContent} 
+                    onFileSelectSilent={handleFileSelectSilent}
+                  />
+
+                  {/* Subtle Instructions Trigger */}
+                  <div className="mt-5 text-center">
+                    <button 
+                      onClick={() => setShowInstructions(!showInstructions)}
+                      className="inline-flex items-center gap-2 text-xs font-semibold text-[#4338ca] hover:text-[#3730a3] bg-indigo-50/50 hover:bg-indigo-50 border border-indigo-100/70 rounded-full px-4 py-1.5 transition-all shadow-2xs"
+                    >
+                      <svg className={`w-3.5 h-3.5 transition-transform duration-300 ${showInstructions ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                      </svg>
+                      <span>How to get your response sheet HTML file?</span>
+                    </button>
+                  </div>
+
+                  {/* Expandable step-by-step guide */}
+                  {showInstructions && (
+                    <div className="mt-6 bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 max-w-xl mx-auto shadow-xs text-left animate-fade-in-up">
+                      <div className="flex items-center justify-between mb-5 border-b border-gray-100 pb-3">
+                        <h3 className="text-sm font-bold text-[#0f172a] flex items-center gap-2">
+                          <svg className="w-4.5 h-4.5 text-[#4338ca]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                          </svg>
+                          How to get response sheet HTML
+                        </h3>
+                        <button 
+                          onClick={() => setShowInstructions(false)}
+                          className="text-gray-400 hover:text-gray-600 text-xs font-semibold hover:bg-gray-50 px-2.5 py-1 rounded-md transition-colors"
+                        >
+                          Hide
+                        </button>
+                      </div>
+
+                      {/* Guide Segmented Tabs */}
+                      <div className="grid grid-cols-2 p-1 mb-6 bg-gray-50 rounded-xl border border-gray-200">
+                        <button
+                          onClick={() => setActiveGuideTab('desktop')}
+                          className={`py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
+                            activeGuideTab === 'desktop'
+                              ? 'bg-white text-[#4338ca] shadow-xs'
+                              : 'text-gray-500 hover:text-gray-800'
+                          }`}
+                        >
+                          💻 Desktop Guide
+                        </button>
+                        <button
+                          onClick={() => setActiveGuideTab('mobile')}
+                          className={`py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                            activeGuideTab === 'mobile'
+                              ? 'bg-white text-[#4338ca] shadow-xs'
+                              : 'text-gray-500 hover:text-gray-800'
+                          }`}
+                        >
+                          <span>📱 Mobile Guide</span>
+                          <span className="px-1.5 py-0.5 bg-indigo-50 text-[9px] text-indigo-600 rounded font-bold uppercase tracking-wide">New</span>
+                        </button>
+                      </div>
+
+                      {activeGuideTab === 'desktop' ? (
+                        <ol className="space-y-4">
+                          <li className="flex items-start gap-3">
+                            <span className="w-6 h-6 rounded-full bg-[#eef2ff] text-[#4338ca] text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+                            <div>
+                              <p className="text-sm font-medium text-[#0f172a]">Log in to your MHT CET dashboard</p>
+                              <p className="text-xs text-gray-400 mt-0.5">Go to <span className="text-[#4338ca] font-medium">cetcell.mahacet.org</span> and sign in with your credentials.</p>
+                            </div>
+                          </li>
+                          <li className="flex items-start gap-3">
+                            <span className="w-6 h-6 rounded-full bg-[#eef2ff] text-[#4338ca] text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+                            <div>
+                              <p className="text-sm font-medium text-[#0f172a]">Click on &quot;Objection Tracker&quot;</p>
+                              <p className="text-xs text-gray-400 mt-0.5">Find and open the Objection Tracker or Response Sheet section in your dashboard.</p>
+                            </div>
+                          </li>
+                          <li className="flex items-start gap-3">
+                            <span className="w-6 h-6 rounded-full bg-[#eef2ff] text-[#4338ca] text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+                            <div>
+                              <p className="text-sm font-medium text-[#0f172a]">Press <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-xs font-mono">Ctrl + S</kbd></p>
+                              <p className="text-xs text-gray-400 mt-0.5">This opens the browser&apos;s Save dialog. On Mac, use <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-xs font-mono">Cmd + S</kbd>.</p>
+                            </div>
+                          </li>
+                          <li className="flex items-start gap-3">
+                            <span className="w-6 h-6 rounded-full bg-[#eef2ff] text-[#4338ca] text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">4</span>
+                            <div>
+                              <p className="text-sm font-medium text-[#0f172a]">Save as HTML file</p>
+                              <p className="text-xs text-gray-400 mt-0.5">Choose &quot;Webpage, HTML Only&quot; or &quot;Webpage, Complete&quot; and save it to your computer.</p>
+                            </div>
+                          </li>
+                          <li className="flex items-start gap-3">
+                            <span className="w-6 h-6 rounded-full bg-[#eef2ff] text-[#4338ca] text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">5</span>
+                            <div>
+                              <p className="text-sm font-medium text-[#0f172a]">Upload it here</p>
+                              <p className="text-xs text-gray-400 mt-0.5">Select your exam shift above, then drag or select the saved HTML file in the upload area.</p>
+                            </div>
+                          </li>
+                        </ol>
+                      ) : (
+                        <div className="space-y-4">
+                          {/* Option 1: Kiwi Browser (Recommended) */}
+                          <div className="p-4 rounded-xl bg-indigo-50/50 border border-indigo-100">
+                            <div className="flex items-center gap-2 mb-2.5">
+                              <span className="px-2 py-0.5 bg-indigo-600 text-white text-[9px] font-bold rounded-sm uppercase tracking-wider">Recommended</span>
+                              <h4 className="text-sm font-bold text-[#0f172a]">Kiwi Browser (Android)</h4>
+                            </div>
+                            <ol className="space-y-2 text-xs text-gray-600 list-decimal pl-4 leading-relaxed">
+                              <li>Install <span className="font-semibold text-indigo-700">Kiwi Browser</span> from Play Store.</li>
+                              <li>Open **CET response sheet**.</li>
+                              <li>Tap **Menu (3 dots)**.</li>
+                              <li>Go to **Page Tools**.</li>
+                              <li>Click **Save As**.</li>
+                              <li>File will save in <span className="font-semibold text-indigo-700">.html</span> format!</li>
+                            </ol>
+                          </div>
+
+                          {/* Option 2: Firefox Extension */}
+                          <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-2xs">
+                            <h4 className="text-sm font-bold text-[#0f172a] mb-2.5 flex items-center gap-2">
+                              <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[9px] font-bold rounded-sm uppercase tracking-wider border border-gray-200">Extension Method</span>
+                              Firefox + SingleFile
+                            </h4>
+                            <ol className="space-y-2 text-xs text-gray-600 list-decimal pl-4 leading-relaxed">
+                              <li>Install **Firefox**.</li>
+                              <li>Install **SingleFile** extension from Add-ons.</li>
+                              <li>Open **response sheet**.</li>
+                              <li>Use **SingleFile** to save page as <span className="font-semibold text-gray-800">.html</span>.</li>
+                            </ol>
+                          </div>
+
+                          {/* Option 3: iOS Safari */}
+                          <div className="p-4 rounded-xl border border-gray-200 bg-white shadow-2xs">
+                            <h4 className="text-sm font-bold text-[#0f172a] mb-2.5 flex items-center gap-2">
+                              <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[9px] font-bold rounded-sm uppercase tracking-wider border border-gray-200">iOS / iPhone</span>
+                              Safari Web Archive Hack
+                            </h4>
+                            <ol className="space-y-2 text-xs text-gray-600 list-decimal pl-4 leading-relaxed">
+                              <li>Open your CET response sheet in **Safari**.</li>
+                              <li>Tap the **Share** icon and select **Options** at the top.</li>
+                              <li>Select **Web Archive** as the format, then tap **Done**.</li>
+                              <li>Select **Save to Files** and store it on your phone.</li>
+                              <li>Open the **Files app**, long-press the file, tap **Rename**, and change `.webarchive` to `.html`!</li>
+                            </ol>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </section>
