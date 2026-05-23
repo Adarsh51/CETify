@@ -108,7 +108,7 @@ export default function DeepAnalysis({
               <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />Live
             </span>
             <span className="px-3 py-1 rounded-full bg-white/15 text-white text-xs font-bold backdrop-blur-sm">
-              {totalGlobalEntries} entries
+              {totalGlobalEntries} total entries
             </span>
           </div>
         </div>
