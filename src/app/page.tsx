@@ -12,7 +12,7 @@ import ResultSummary from '@/components/ResultSummary';
 import ShiftAnalytics from '@/components/ShiftAnalytics';
 import AllShiftsStats from '@/components/AllShiftsStats';
 import DeepAnalysis from '@/components/DeepAnalysis';
-import { saveScore, getShiftStats, ShiftStats, validateAndCorrectShift, getAllShiftsStats, GlobalShiftStats } from '@/utils/db';
+import { saveScore, getShiftStats, ShiftStats, getAllShiftsStats, GlobalShiftStats } from '@/utils/db';
 import { generatePdfReport } from '@/utils/generatePdf';
 import Image from 'next/image';
 
@@ -100,11 +100,6 @@ export default function HomePage() {
       const { examDate, shift, groupType } = parseSelectedSlot(selectedSlot);
       let finalExamDate = examDate;
       let finalShift = shift;
-      const correctedSlot = await validateAndCorrectShift(parseResult.meta.applicationNumber, parseResult.meta.examCode, examDate, shift);
-      if (correctedSlot) {
-        finalExamDate = correctedSlot.examDate;
-        finalShift = correctedSlot.shift;
-      }
 
       const record = {
         candidateName: parseResult.meta.candidateName,
@@ -142,26 +137,6 @@ export default function HomePage() {
       const { examDate, shift, groupType } = parseSelectedSlot(selectedSlot);
       let finalExamDate = examDate;
       let finalShift = shift;
-
-      // Autocorrect or validate shift lock-in immediately
-      const correctedSlot = await validateAndCorrectShift(parseResult.meta.applicationNumber, parseResult.meta.examCode, examDate, shift);
-      
-      if (correctedSlot && (correctedSlot.examDate !== examDate || correctedSlot.shift !== shift)) {
-        finalExamDate = correctedSlot.examDate;
-        finalShift = correctedSlot.shift;
-        
-        if (correctedSlot.reason === 'autocorrect') {
-          setAutocorrectMessage({
-            message: `Based on our system's verified data for your response sheet, your shift has been automatically corrected to ${finalExamDate} ${finalShift}.`,
-            type: 'autocorrect'
-          });
-        } else {
-          setAutocorrectMessage({
-            message: `You previously calculated your score under ${finalExamDate} ${finalShift}. To ensure ranking consistency, we have reverted your shift to match your first calculation.`,
-            type: 'lock-in'
-          });
-        }
-      }
 
       const slotDetails: ExamSlotDetails = {
         attempt: selectedAttempt as 'Attempt 1' | 'Attempt 2',

@@ -83,9 +83,9 @@ function saveLocalRecord(record: CandidateScoreRecord) {
   try {
     const records = getLocalRecords();
     
-    // Avoid double entry of same application number in same shift
+    // Avoid double entry of same application number in same attempt
     const filtered = records.filter(
-      r => !(r.applicationNumber === record.applicationNumber && r.examDate === record.examDate && r.shift === record.shift)
+      r => !(r.applicationNumber === record.applicationNumber && r.attempt === record.attempt)
     );
     
     // Keep local records lightweight (don't store rawHtml in localStorage to avoid quota limits!)
@@ -131,7 +131,7 @@ export async function saveScore(record: CandidateScoreRecord): Promise<boolean> 
         shift: record.shift,
         raw_html: record.rawHtml, // Saves raw HTML response sheet anonymously
       }, {
-        onConflict: 'application_number,exam_date,shift,attempt'
+        onConflict: 'application_number,attempt'
       });
 
     if (error) {
@@ -145,87 +145,6 @@ export async function saveScore(record: CandidateScoreRecord): Promise<boolean> 
   }
 }
 
-/**
- * Validates and autocorrects the shift based on crowdsourced data and application lock-in.
- * Returns the corrected shift if a mismatch is found, or null if everything is correct.
- */
-export async function validateAndCorrectShift(
-  applicationNumber: string,
-  examCode: string,
-  selectedExamDate: string,
-  selectedShift: 'Shift 1' | 'Shift 2'
-): Promise<{ examDate: string; shift: 'Shift 1' | 'Shift 2'; reason: 'lock-in' | 'autocorrect' } | null> {
-  // 1. Check Application Number Lock-in (Local Storage)
-  const local = getLocalRecords();
-  const localMatch = local.find(r => r.applicationNumber === applicationNumber);
-  if (localMatch) {
-    if (localMatch.examDate !== selectedExamDate || localMatch.shift !== selectedShift) {
-      return { examDate: localMatch.examDate, shift: localMatch.shift, reason: 'lock-in' };
-    }
-    return null; // Already validated locally
-  }
-
-  // 2. Check Application Number Lock-in (Supabase)
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('scores')
-        .select('exam_date, shift')
-        .eq('application_number', applicationNumber)
-        .limit(1);
-        
-      if (!error && data && data.length > 0) {
-        const dbMatch = data[0];
-        if (dbMatch.exam_date !== selectedExamDate || dbMatch.shift !== selectedShift) {
-          return { examDate: dbMatch.exam_date, shift: dbMatch.shift as 'Shift 1' | 'Shift 2', reason: 'lock-in' };
-        }
-        return null; // Already validated via DB
-      }
-    } catch (e) {
-      console.warn('Network error checking shift lock-in:', e);
-    }
-  }
-
-  // 3. Crowdsourced Autocorrect based on Exam Code (Supabase)
-  if (supabase && examCode && examCode.trim() !== '') {
-    try {
-      // Find what shift the majority of students with this same examCode selected
-      const { data, error } = await supabase
-        .from('scores')
-        .select('exam_date, shift')
-        .ilike('raw_html', `%${examCode}%`)
-        .limit(15);
-
-      if (!error && data && data.length > 0) {
-        const counts: Record<string, number> = {};
-        let maxCount = 0;
-        let mostFrequent = data[0];
-
-        for (const row of data) {
-          const key = `${row.exam_date}|${row.shift}`;
-          counts[key] = (counts[key] || 0) + 1;
-          if (counts[key] > maxCount) {
-            maxCount = counts[key];
-            mostFrequent = row;
-          }
-        }
-
-        // If the crowd consensus disagrees with the user's manual selection, autocorrect it
-        if (mostFrequent.exam_date !== selectedExamDate || mostFrequent.shift !== selectedShift) {
-          return { 
-            examDate: mostFrequent.exam_date, 
-            shift: mostFrequent.shift as 'Shift 1' | 'Shift 2',
-            reason: 'autocorrect'
-          };
-        }
-      }
-    } catch (e) {
-      console.warn('Network error during crowdsourced autocorrect:', e);
-    }
-  }
-
-  return null; // No correction needed
-}
 
 /**
  * Computes comparative statistics for a candidate's shift.
