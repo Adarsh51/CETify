@@ -125,7 +125,7 @@ export async function saveScore(record: CandidateScoreRecord): Promise<boolean> 
         shift: record.shift,
         raw_html: record.rawHtml, // Saves raw HTML response sheet anonymously
       }, {
-        onConflict: 'application_number,exam_date,shift'
+        onConflict: 'application_number,exam_date,shift,attempt'
       });
 
     if (error) {

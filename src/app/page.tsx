@@ -11,7 +11,8 @@ import SubjectBreakdown from '@/components/SubjectBreakdown';
 import ResultSummary from '@/components/ResultSummary';
 import ShiftAnalytics from '@/components/ShiftAnalytics';
 import AllShiftsStats from '@/components/AllShiftsStats';
-import { saveScore, getShiftStats, ShiftStats, validateAndCorrectShift } from '@/utils/db';
+import DeepAnalysis from '@/components/DeepAnalysis';
+import { saveScore, getShiftStats, ShiftStats, validateAndCorrectShift, getAllShiftsStats, GlobalShiftStats } from '@/utils/db';
 import { generatePdfReport } from '@/utils/generatePdf';
 import Image from 'next/image';
 
@@ -75,11 +76,16 @@ export default function HomePage() {
   // Slot and analytics state
   const [examSlot, setExamSlot] = useState<ExamSlotDetails | null>(null);
   const [shiftStats, setShiftStats] = useState<ShiftStats | null>(null);
+  const [globalStats, setGlobalStats] = useState<GlobalShiftStats[] | null>(null);
+  const [questions, setQuestions] = useState<ParseResult['questions'] | null>(null);
 
   // Guide tab state ('desktop' | 'mobile')
   const [activeGuideTab, setActiveGuideTab] = useState<'desktop' | 'mobile'>('mobile');
   // Expandable instructions state
   const [showInstructions, setShowInstructions] = useState(false);
+  
+  // View mode
+  const [viewMode, setViewMode] = useState<'standard' | 'deep'>('standard');
   
   // Autocorrect message state
   const [autocorrectMessage, setAutocorrectMessage] = useState<{ message: string; type: 'lock-in' | 'autocorrect' } | null>(null);
@@ -190,10 +196,15 @@ export default function HomePage() {
           // Fetch rank comparison statistics
           const stats = await getShiftStats(record);
           setShiftStats(stats);
+          
+          // Fetch global stats
+          const allStats = await getAllShiftsStats();
+          setGlobalStats(allStats);
 
           // Complete state transition
           setResult(calcResult);
           setMeta(parseResult.meta);
+          setQuestions(parseResult.questions);
           setAppState('results');
 
           setTimeout(() => {
@@ -215,10 +226,13 @@ export default function HomePage() {
     setAppState('idle');
     setResult(null);
     setMeta(null);
+    setQuestions(null);
     setError(null);
     setExamSlot(null);
     setShiftStats(null);
+    setGlobalStats(null);
     setAutocorrectMessage(null);
+    setViewMode('standard');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -480,42 +494,87 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* Score Card */}
-            <div className="animate-fade-in-up">
-              <ScoreCard
-                totalMarks={result.totalMarks}
-                maxMarks={result.maxMarks}
-                percentage={result.percentage}
-                onDownloadPdf={handleDownloadPdf}
-              />
+            {/* View Mode Toggle */}
+            <div className="flex justify-center pt-2 pb-6 animate-fade-in-up">
+              <div className="bg-white rounded-full p-1 border border-gray-200 shadow-sm inline-flex">
+                <button
+                  onClick={() => setViewMode('standard')}
+                  className={`px-6 py-2.5 text-sm font-semibold rounded-full transition-all ${
+                    viewMode === 'standard' 
+                      ? 'bg-[#4338ca] text-white shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+                >
+                  Standard View
+                </button>
+                <button
+                  onClick={() => setViewMode('deep')}
+                  className={`px-6 py-2.5 text-sm font-semibold rounded-full transition-all flex items-center gap-1.5 ${
+                    viewMode === 'deep' 
+                      ? 'bg-gray-900 text-white shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+                >
+                  <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Deep Analysis
+                </button>
+              </div>
             </div>
 
-            {/* Shift Analytics Card */}
-            <div className="animate-fade-in-up delay-100">
-              <ShiftAnalytics
-                stats={shiftStats}
-                attempt={examSlot.attempt}
-                examDate={examSlot.examDate}
-                shift={examSlot.shift}
-                groupType={examSlot.groupType}
-              />
-            </div>
+            {viewMode === 'standard' ? (
+              <>
+                {/* Score Card */}
+                <div className="animate-fade-in-up delay-[50ms]">
+                  <ScoreCard
+                    totalMarks={result.totalMarks}
+                    maxMarks={result.maxMarks}
+                    percentage={result.percentage}
+                    onDownloadPdf={handleDownloadPdf}
+                  />
+                </div>
 
-            {/* Subject Breakdown */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up delay-150">
-              <div className="md:col-span-2">
-                <SubjectBreakdown
-                  physics={result.physics}
-                  chemistry={result.chemistry}
-                  maths={result.maths}
+                {/* Shift Analytics Card */}
+                <div className="animate-fade-in-up delay-100">
+                  <ShiftAnalytics
+                    stats={shiftStats}
+                    attempt={examSlot.attempt}
+                    examDate={examSlot.examDate}
+                    shift={examSlot.shift}
+                    groupType={examSlot.groupType}
+                  />
+                </div>
+
+                {/* Subject Breakdown */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up delay-150">
+                  <div className="md:col-span-2">
+                    <SubjectBreakdown
+                      physics={result.physics}
+                      chemistry={result.chemistry}
+                      maths={result.maths}
+                    />
+                  </div>
+                  <div>
+                    <ResultSummary result={result} meta={meta} layout="sidebar" />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="animate-fade-in-up delay-[50ms]">
+                <DeepAnalysis 
+                  result={result}
+                  meta={meta}
+                  questions={questions!}
+                  shiftStats={shiftStats}
+                  globalStats={globalStats}
+                  attempt={examSlot.attempt}
+                  examDate={examSlot.examDate}
+                  shift={examSlot.shift}
+                  groupType={examSlot.groupType}
                 />
               </div>
-              <div>
-                <ResultSummary result={result} meta={meta} layout="sidebar" />
-              </div>
-            </div>
-
-
+            )}
 
             {/* Re-calculate Button */}
             <div className="flex justify-center pt-4 pb-12 animate-fade-in-up delay-300">

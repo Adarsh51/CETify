@@ -21,6 +21,19 @@ const SLOT_OPTIONS = [
   '19 April Shift 2',
   '20 April Shift 1',
   '20 April Shift 2',
+  '12 May Shift 1',
+  '12 May Shift 2',
+  '13 May Shift 1',
+  '13 May Shift 2',
+  '14 May Shift 1',
+  '14 May Shift 2',
+  '15 May Shift 1',
+  '15 May Shift 2',
+  '18 May Shift 1',
+  '18 May Shift 2',
+  '19 May Shift 1',
+  '19 May Shift 2',
+  '20 May Shift 1',
 ];
 
 interface UploadDropzoneProps {
@@ -122,6 +135,7 @@ export default function UploadDropzone({ onFileContent, onFileSelectSilent }: Up
             className="w-full py-3.5 px-4 rounded-xl border border-gray-200 text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#4338ca]/20 focus:border-[#4338ca] text-sm font-semibold transition-all hover:bg-gray-50"
           >
             <option value="Attempt 1">Attempt 1 (April Session)</option>
+            <option value="Attempt 2">Attempt 2 (May Session)</option>
           </select>
         </div>
         <div>
