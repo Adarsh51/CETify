@@ -12,7 +12,7 @@ import ResultSummary from '@/components/ResultSummary';
 import ShiftAnalytics from '@/components/ShiftAnalytics';
 import AllShiftsStats from '@/components/AllShiftsStats';
 import DeepAnalysis from '@/components/DeepAnalysis';
-import { saveScore, getShiftStats, ShiftStats, getAllShiftsStats, GlobalShiftStats } from '@/utils/db';
+import { saveScore, getShiftStats, ShiftStats, getAllShiftsStats, GlobalShiftStats, checkExistingShift } from '@/utils/db';
 import { generatePdfReport } from '@/utils/generatePdf';
 import Image from 'next/image';
 
@@ -101,6 +101,15 @@ export default function HomePage() {
       let finalExamDate = examDate;
       let finalShift = shift;
 
+      // Check shift lock in background too
+      const existingSlot = await checkExistingShift(
+        parseResult.meta.applicationNumber,
+        selectedAttempt as 'Attempt 1' | 'Attempt 2'
+      );
+      if (existingSlot && (existingSlot.examDate !== finalExamDate || existingSlot.shift !== finalShift)) {
+        return; // Silent fail if trying to overwrite to a different shift
+      }
+
       const record = {
         candidateName: parseResult.meta.candidateName,
         applicationNumber: parseResult.meta.applicationNumber,
@@ -137,6 +146,18 @@ export default function HomePage() {
       const { examDate, shift, groupType } = parseSelectedSlot(selectedSlot);
       let finalExamDate = examDate;
       let finalShift = shift;
+
+      // Validate Shift Lock-in: prevent shift-hopping
+      const existingSlot = await checkExistingShift(
+        parseResult.meta.applicationNumber,
+        selectedAttempt as 'Attempt 1' | 'Attempt 2'
+      );
+      
+      if (existingSlot && (existingSlot.examDate !== finalExamDate || existingSlot.shift !== finalShift)) {
+        setError(`You have already submitted a response sheet for ${selectedAttempt} under ${existingSlot.examDate} ${existingSlot.shift}. To prevent duplicate entries and ranking manipulation, you cannot change your shift after submission. If you made a genuine mistake, please contact support.`);
+        setAppState('error');
+        return;
+      }
 
       const slotDetails: ExamSlotDetails = {
         attempt: selectedAttempt as 'Attempt 1' | 'Attempt 2',

@@ -103,6 +103,50 @@ function saveLocalRecord(record: CandidateScoreRecord) {
 }
 
 /**
+ * Checks if a candidate has already uploaded a score for a given attempt.
+ * Returns their existing shift details if found, or null otherwise.
+ */
+export async function checkExistingShift(
+  applicationNumber: string,
+  attempt: 'Attempt 1' | 'Attempt 2'
+): Promise<{ examDate: string; shift: 'Shift 1' | 'Shift 2' } | null> {
+  // 1. Check LocalStorage first for instant verification
+  const local = getLocalRecords();
+  const localMatch = local.find(
+    r => r.applicationNumber === applicationNumber && r.attempt === attempt
+  );
+  if (localMatch) {
+    return {
+      examDate: localMatch.examDate,
+      shift: localMatch.shift,
+    };
+  }
+
+  // 2. Check Supabase
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('scores')
+        .select('exam_date, shift')
+        .eq('application_number', applicationNumber)
+        .eq('attempt', attempt)
+        .maybeSingle();
+
+      if (!error && data) {
+        return {
+          examDate: data.exam_date,
+          shift: data.shift as 'Shift 1' | 'Shift 2',
+        };
+      }
+    } catch (e) {
+      console.warn('Network error checking existing shift lock:', e);
+    }
+  }
+
+  return null;
+}
+
+/**
  * Saves a student's calculated score record.
  * Tries Supabase first, falls back to localStorage on any failure.
  */
