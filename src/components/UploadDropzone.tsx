@@ -61,6 +61,7 @@ function hasValidExtension(file: File): boolean {
 }
 
 export const IS_ATTEMPT_1_OPEN = true; // Toggle this to lock/unlock Attempt 1 uploads
+export const IS_ATTEMPT_2_OPEN = false; // Toggle this to lock/unlock Attempt 2 uploads
 
 export default function UploadDropzone({ onFileContent, onFileSelectSilent }: UploadDropzoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
@@ -146,7 +147,9 @@ export default function UploadDropzone({ onFileContent, onFileSelectSilent }: Up
             <option value="Attempt 1" disabled={!IS_ATTEMPT_1_OPEN} className={!IS_ATTEMPT_1_OPEN ? "text-gray-400" : ""}>
               Attempt 1 (April Session) {!IS_ATTEMPT_1_OPEN && '— Closed'}
             </option>
-            <option value="Attempt 2">Attempt 2 (May Session)</option>
+            <option value="Attempt 2" disabled={!IS_ATTEMPT_2_OPEN} className={!IS_ATTEMPT_2_OPEN ? "text-gray-400" : ""}>
+              Attempt 2 (May) {!IS_ATTEMPT_2_OPEN && '— Awaiting'}
+            </option>
           </select>
         </div>
         <div>
