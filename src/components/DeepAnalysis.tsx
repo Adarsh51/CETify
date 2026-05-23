@@ -5,7 +5,8 @@ import { CalculationResult, ParseResult } from '@/types';
 import { ShiftStats, GlobalShiftStats } from '@/utils/db';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell,
-  PieChart, Pie, Cell as PieCell, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
+  PieChart, Pie, Cell as PieCell, Legend, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  AreaChart, Area
 } from 'recharts';
 
 interface DeepAnalysisProps {
@@ -20,9 +21,13 @@ interface DeepAnalysisProps {
   groupType: 'PCM' | 'PCB';
 }
 
-/* ════════════════════════════════════════════════════════════════
-   MAIN COMPONENT
-   ════════════════════════════════════════════════════════════════ */
+const CARD = "bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow";
+const LABEL = "text-[10px] font-bold text-gray-400 uppercase tracking-widest";
+const tooltipStyle: React.CSSProperties = {
+  borderRadius: '12px', border: '1px solid #e5e7eb', backgroundColor: '#fff',
+  color: '#1e293b', fontSize: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+};
+
 export default function DeepAnalysis({
   result, meta, questions, shiftStats, globalStats,
   attempt, examDate, shift, groupType
@@ -32,89 +37,50 @@ export default function DeepAnalysis({
     ? ((shiftStats.behindCount / Math.max(shiftStats.totalStudents, 1)) * 100).toFixed(1)
     : '0.0';
 
-  /* ── derived chart data ── */
   const {
-    histogramData, crossShiftData, entriesData, currentGlobal,
-    relatedShifts, topperData, averageData, subjectShiftData,
-    toughestShift, easiestShift, totalGlobalEntries
+    histogramData, crossShiftData, currentGlobal,
+    relatedShifts, topperData, subjectShiftData,
+    toughestShift, easiestShift, totalGlobalEntries, entriesData
   } = useMemo(() => {
     if (!globalStats) return {
-      histogramData: [], crossShiftData: [], entriesData: [], currentGlobal: null,
-      relatedShifts: [], topperData: [], averageData: [], subjectShiftData: [],
-      toughestShift: null, easiestShift: null, totalGlobalEntries: 0
+      histogramData: [], crossShiftData: [], currentGlobal: null,
+      relatedShifts: [], topperData: [], subjectShiftData: [],
+      toughestShift: null, easiestShift: null, totalGlobalEntries: 0, entriesData: []
     };
 
     const current = globalStats.find(s =>
       s.shift === shift && s.examDate === examDate && s.groupType === groupType && s.attempt === attempt
     );
 
-    // histogram buckets
-    const buckets = Array.from({ length: 10 }, (_, i) => ({
-      label: `${i * 20}-${(i + 1) * 20}`, count: 0
-    }));
-    let userBucketIdx = -1;
+    // histogram
+    const buckets = Array.from({ length: 10 }, (_, i) => ({ label: `${i * 20}-${(i + 1) * 20}`, count: 0 }));
+    let userBucket = -1;
     if (current?.scoresList) {
-      current.scoresList.forEach(score => {
-        let b = Math.floor(score / 20);
-        if (b >= 10) b = 9;
-        buckets[b].count++;
-      });
-      userBucketIdx = Math.min(Math.floor(result.totalMarks / 20), 9);
+      current.scoresList.forEach(score => { let b = Math.min(Math.floor(score / 20), 9); buckets[b].count++; });
+      userBucket = Math.min(Math.floor(result.totalMarks / 20), 9);
     }
-    const histData = buckets.map((b, i) => ({ name: b.label, count: b.count, isUser: i === userBucketIdx }));
+    const histData = buckets.map((b, i) => ({ name: b.label, count: b.count, isUser: i === userBucket }));
 
-    // related shifts for this attempt+group
     const related = globalStats.filter(s => s.groupType === groupType && s.attempt === attempt);
+    const fmt = (s: GlobalShiftStats) => `${s.examDate.replace('April ', '').replace('May ', '')} ${s.shift === 'Shift 1' ? 'S1' : 'S2'}`;
 
-    // cross-shift averages
-    const crossData = related.map(s => ({
-      name: `${s.examDate.replace('April ', '').replace('May ', '')} ${s.shift === 'Shift 1' ? 'S1' : 'S2'}`,
-      average: s.averageScore,
-      isCurrent: s.shift === shift && s.examDate === examDate
-    }));
-
-    // topper data per shift
-    const tData = related.map(s => ({
-      name: `${s.examDate.replace('April ', '').replace('May ', '')} ${s.shift === 'Shift 1' ? 'S1' : 'S2'}`,
-      topper: s.highestScore,
-      isCurrent: s.shift === shift && s.examDate === examDate
-    }));
-
-    // average data per shift
-    const aData = related.map(s => ({
-      name: `${s.examDate.replace('April ', '').replace('May ', '')} ${s.shift === 'Shift 1' ? 'S1' : 'S2'}`,
-      average: s.averageScore,
-      isCurrent: s.shift === shift && s.examDate === examDate
-    }));
-
-    // subject-wise per-shift comparison
-    const subData = related.map(s => ({
-      name: `${s.examDate.replace('April ', '').replace('May ', '')} ${s.shift === 'Shift 1' ? 'S1' : 'S2'}`,
-      physics: s.physicsAvg,
-      chemistry: s.chemistryAvg,
-      maths: s.mathsAvg,
-    }));
-
-    // entries pie for same-day shifts
+    const crossData = related.map(s => ({ name: fmt(s), average: s.averageScore, isCurrent: s.shift === shift && s.examDate === examDate }));
+    const tData = related.map(s => ({ name: fmt(s), topper: s.highestScore, isCurrent: s.shift === shift && s.examDate === examDate }));
+    const subData = related.map(s => ({ name: fmt(s), physics: s.physicsAvg, chemistry: s.chemistryAvg, maths: s.mathsAvg }));
     const sameDayShifts = related.filter(s => s.examDate === examDate);
     const eData = sameDayShifts.map(s => ({ name: s.shift, value: s.totalStudents }));
 
-    // toughest / easiest
     const sorted = [...related].sort((a, b) => a.averageScore - b.averageScore);
-    const tough = sorted.length > 0 ? sorted[0] : null;
-    const easy = sorted.length > 0 ? sorted[sorted.length - 1] : null;
-
-    const totalEntries = related.reduce((sum, s) => sum + s.totalStudents, 0);
 
     return {
-      histogramData: histData, crossShiftData: crossData, entriesData: eData,
-      currentGlobal: current, relatedShifts: related,
-      topperData: tData, averageData: aData, subjectShiftData: subData,
-      toughestShift: tough, easiestShift: easy, totalGlobalEntries: totalEntries
+      histogramData: histData, crossShiftData: crossData, currentGlobal: current,
+      relatedShifts: related, topperData: tData, subjectShiftData: subData,
+      toughestShift: sorted[0] || null, easiestShift: sorted[sorted.length - 1] || null,
+      totalGlobalEntries: related.reduce((s, r) => s + r.totalStudents, 0),
+      entriesData: eData
     };
   }, [globalStats, shift, examDate, groupType, attempt, result.totalMarks]);
 
-  /* ── radar data for subject comparison ── */
   const radarData = useMemo(() => {
     if (!currentGlobal) return [];
     return [
@@ -125,474 +91,402 @@ export default function DeepAnalysis({
   }, [result, currentGlobal]);
 
   const [shiftCompTab, setShiftCompTab] = useState<'topper' | 'average'>('topper');
+  const PIE_COLORS = ['#4338ca', '#10b981'];
 
-  const PIE_COLORS = ['#f43f5e', '#6366f1'];
-
-  /* ════════════════════════════════════════════════════
-     RENDER
-     ════════════════════════════════════════════════════ */
   return (
-    <div className="w-full bg-[#0b1120] text-white rounded-2xl overflow-hidden font-sans">
+    <div className="w-full space-y-8">
 
-      {/* ═══════════ HEADER ═══════════ */}
-      <div className="px-6 sm:px-8 pt-8 pb-4">
+      {/* ═══ HERO BANNER ═══ */}
+      <div className={`${CARD} p-6 sm:p-8 bg-gradient-to-br from-[#4338ca] to-[#6366f1] text-white border-0`}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white">Shift-wise Live Analysis</h2>
-            <p className="text-sm text-slate-400 mt-1">Real-time competitor analytics powered by anonymous submissions</p>
+            <h2 className="text-xl sm:text-2xl font-extrabold">Detailed Performance Report</h2>
+            <p className="text-indigo-200 text-sm mt-1">{examDate} · {shift} · {attempt}</p>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 uppercase tracking-wider">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Live Data
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-300 uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />Live
             </span>
-            <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 text-xs font-bold border border-emerald-500/25">
-              {totalGlobalEntries} total submissions
+            <span className="px-3 py-1 rounded-full bg-white/15 text-white text-xs font-bold backdrop-blur-sm">
+              {totalGlobalEntries} entries
             </span>
           </div>
         </div>
       </div>
 
-      <div className="px-6 sm:px-8 pb-8 space-y-10">
+      {/* ═══ YOUR POSITION ═══ */}
+      {shiftStats && (
+        <section>
+          <SectionHeader label="01" title="Your Position in This Shift" />
 
-        {/* ═══════════ SECTION 01 — YOUR POSITION ═══════════ */}
-        {shiftStats && (
-          <section>
-            <p className="text-xs font-bold text-rose-500 uppercase tracking-widest mb-1">Section 01</p>
-            <h3 className="text-lg font-bold text-white mb-5">Your Position in Your Shift</h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {/* Big Rank */}
-              <div className="bg-[#131b2e] rounded-xl p-6 border border-slate-700/40 flex flex-col items-center justify-center sm:row-span-2">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Your Shift Rank</p>
-                <p className="text-6xl sm:text-7xl font-black text-rose-500 leading-none">
-                  #{shiftStats.aheadCount + 1}
-                </p>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-3">
-                  Out of {shiftStats.totalStudents} students
-                </p>
-                <p className="text-xs text-slate-500 mt-4 text-center leading-relaxed">
-                  You scored higher than {shiftStats.behindCount} students<br/>(Top {percentile}%).
-                </p>
-              </div>
-
-              {/* Students Ahead */}
-              <StatCard icon="arrow-up" iconBg="bg-emerald-500/15" iconColor="text-emerald-400"
-                value={shiftStats.aheadCount} label="Students Ahead of You" />
-              {/* Shift Average */}
-              <StatCard icon="chart" iconBg="bg-amber-500/15" iconColor="text-amber-400"
-                value={shiftStats.averageScore} label="Shift Average Score" />
-              {/* Same Score */}
-              <StatCard icon="equals" iconBg="bg-blue-500/15" iconColor="text-blue-400"
-                value={Math.max(0, shiftStats.totalStudents - shiftStats.aheadCount - shiftStats.behindCount - 1)}
-                label="Same Score as You" />
-              {/* Highest */}
-              <StatCard icon="star" iconBg="bg-fuchsia-500/15" iconColor="text-fuchsia-400"
-                value={shiftStats.highestScore} label="Highest Score in Shift" />
-              {/* Below */}
-              <StatCard icon="arrow-down" iconBg="bg-rose-500/15" iconColor="text-rose-400"
-                value={shiftStats.behindCount} label="Students Below You" />
-              {/* Total */}
-              <StatCard icon="users" iconBg="bg-emerald-500/15" iconColor="text-emerald-400"
-                value={shiftStats.totalStudents} label="Total Shift Participants" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {/* Rank — spans 2 cols on mobile, 1 col on desktop */}
+            <div className={`${CARD} p-6 col-span-2 sm:col-span-1 sm:row-span-2 flex flex-col items-center justify-center`}>
+              <p className={LABEL}>Shift Rank</p>
+              <p className="text-5xl sm:text-6xl font-black text-[#4338ca] leading-none mt-2">
+                #{shiftStats.aheadCount + 1}
+              </p>
+              <p className="text-xs text-gray-400 font-semibold mt-2">of {shiftStats.totalStudents} students</p>
+              <p className="text-xs text-gray-400 mt-3 text-center">Top {percentile}%</p>
             </div>
 
-            {/* Score Comparison — You vs Shift */}
-            <div className="mt-6 bg-[#131b2e] rounded-xl p-6 border border-slate-700/40">
-              <h4 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-5">Score Comparison — You vs Shift</h4>
-              <div className="h-64 sm:h-72 w-full">
+            <MiniStat label="Ahead of you" value={shiftStats.aheadCount} color="text-rose-500" />
+            <MiniStat label="Shift Average" value={shiftStats.averageScore} color="text-amber-500" />
+            <MiniStat label="Same Score" value={Math.max(0, shiftStats.totalStudents - shiftStats.aheadCount - shiftStats.behindCount - 1)} color="text-blue-500" />
+            <MiniStat label="Shift Topper" value={shiftStats.highestScore} color="text-[#4338ca]" />
+            <MiniStat label="Below You" value={shiftStats.behindCount} color="text-emerald-500" />
+            <MiniStat label="Participants" value={shiftStats.totalStudents} color="text-gray-700" />
+          </div>
+
+          {/* You vs Shift chart */}
+          <div className={`${CARD} p-6 mt-4`}>
+            <h4 className="text-sm font-bold text-gray-800 mb-5">Your Score vs Shift</h4>
+            <div className="h-56 sm:h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={[
+                  { name: 'You', value: result.totalMarks },
+                  { name: 'Average', value: shiftStats.averageScore },
+                  { name: 'Topper', value: shiftStats.highestScore },
+                ]} margin={{ top: 10, right: 10, left: -15, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} domain={[0, 200]} />
+                  <RechartsTooltip contentStyle={tooltipStyle} />
+                  <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={80}>
+                    <Cell fill="#4338ca" />
+                    <Cell fill="#10b981" />
+                    <Cell fill="#f59e0b" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ═══ SUBJECT-WISE PERFORMANCE ═══ */}
+      {currentGlobal && (
+        <section>
+          <SectionHeader label="02" title="Subject-wise Breakdown" />
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            {/* Radar */}
+            <div className={`${CARD} p-5 lg:col-span-2`}>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">You vs Shift Avg</p>
+              <div className="h-56 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={[
-                      { name: 'Your Score', value: result.totalMarks },
-                      { name: 'Shift Average', value: shiftStats.averageScore },
-                      { name: 'Shift Highest', value: shiftStats.highestScore },
-                    ]}
-                    margin={{ top: 10, right: 10, left: -15, bottom: 20 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8', fontWeight: 600 }} dy={10} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#475569' }} domain={[0, 200]} />
-                    <RechartsTooltip cursor={{ fill: 'rgba(255,255,255,0.02)' }} contentStyle={darkTooltipStyle} />
-                    <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={100}>
-                      <Cell fill="#f43f5e" />
-                      <Cell fill="#38bdf8" />
-                      <Cell fill="#c084fc" />
-                    </Bar>
-                  </BarChart>
+                  <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
+                    <PolarGrid stroke="#e2e8f0" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }} />
+                    <PolarRadiusAxis tick={{ fontSize: 9, fill: '#94a3b8' }} />
+                    <Radar name="You" dataKey="you" stroke="#4338ca" fill="#4338ca" fillOpacity={0.2} strokeWidth={2} />
+                    <Radar name="Shift Avg" dataKey="avg" stroke="#10b981" fill="#10b981" fillOpacity={0.1} strokeWidth={2} />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', color: '#64748b' }} />
+                  </RadarChart>
                 </ResponsiveContainer>
               </div>
             </div>
-          </section>
-        )}
-
-        {/* ═══════════ SECTION 02 — SUBJECT-WISE PERFORMANCE ═══════════ */}
-        {currentGlobal && (
-          <section>
-            <p className="text-xs font-bold text-rose-500 uppercase tracking-widest mb-1">Section 02</p>
-            <h3 className="text-lg font-bold text-white mb-5">Subject-wise Performance in Your Shift</h3>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Radar Chart */}
-              <div className="bg-[#131b2e] rounded-xl p-6 border border-slate-700/40">
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
-                      <PolarGrid stroke="#1e293b" />
-                      <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fill: '#94a3b8' }} />
-                      <PolarRadiusAxis tick={{ fontSize: 10, fill: '#475569' }} />
-                      <Radar name="You" dataKey="you" stroke="#f43f5e" fill="#f43f5e" fillOpacity={0.25} strokeWidth={2} />
-                      <Radar name="Shift Avg" dataKey="avg" stroke="#38bdf8" fill="#38bdf8" fillOpacity={0.15} strokeWidth={2} />
-                      <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Horizontal Subject Bars */}
-              <div className="bg-[#131b2e] rounded-xl p-6 border border-slate-700/40 flex flex-col justify-center space-y-5">
-                {[
-                  { name: 'Physics', yours: result.physics.marks, max: result.physics.maxMarks, avg: currentGlobal.physicsAvg, color: '#f43f5e' },
-                  { name: 'Chemistry', yours: result.chemistry.marks, max: result.chemistry.maxMarks, avg: currentGlobal.chemistryAvg, color: '#38bdf8' },
-                  { name: 'Mathematics', yours: result.maths.marks, max: result.maths.maxMarks, avg: currentGlobal.mathsAvg, color: '#c084fc' },
-                ].map(s => (
-                  <div key={s.name}>
-                    <div className="flex justify-between text-xs font-bold mb-2">
-                      <span className="text-slate-300">{s.name}</span>
-                      <span className="text-white">{s.yours} / {s.max}</span>
+            {/* Subject cards */}
+            <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { sub: result.physics, avg: currentGlobal.physicsAvg, color: '#4338ca', bg: 'bg-indigo-50', border: 'border-l-indigo-500' },
+                { sub: result.chemistry, avg: currentGlobal.chemistryAvg, color: '#10b981', bg: 'bg-emerald-50', border: 'border-l-emerald-500' },
+                { sub: result.maths, avg: currentGlobal.mathsAvg, color: '#f59e0b', bg: 'bg-amber-50', border: 'border-l-amber-500' },
+              ].map(({ sub, avg, color, bg, border }) => {
+                const pct = sub.maxMarks > 0 ? (sub.marks / sub.maxMarks) * 100 : 0;
+                return (
+                  <div key={sub.subject} className={`${CARD} p-5 border-l-4 ${border}`}>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{sub.subject}</p>
+                    <p className="text-3xl font-black text-gray-800 mt-2">{sub.marks}<span className="text-sm font-semibold text-gray-400">/{sub.maxMarks}</span></p>
+                    <div className="w-full bg-gray-100 rounded-full h-2 mt-3 overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: color }} />
                     </div>
-                    {/* Your score bar */}
-                    <div className="w-full bg-[#1e293b] rounded-full h-2.5 mb-1.5 overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${(s.yours / s.max) * 100}%`, backgroundColor: s.color }} />
+                    <div className="flex justify-between mt-3 text-[10px] font-bold text-gray-400 uppercase">
+                      <span>Accuracy: {Math.round(sub.accuracy)}%</span>
+                      <span>Avg: {avg}</span>
                     </div>
-                    {/* Avg bar */}
-                    <div className="w-full bg-[#1e293b] rounded-full h-1.5 overflow-hidden">
-                      <div className="h-full rounded-full opacity-40" style={{ width: `${(s.avg / s.max) * 100}%`, backgroundColor: s.color }} />
+                    <div className="flex gap-3 mt-2 text-xs font-semibold text-gray-500">
+                      <span className="text-emerald-500">✓ {sub.correct}</span>
+                      <span className="text-rose-500">✗ {sub.incorrect}</span>
+                      <span className="text-gray-400">— {sub.unattempted}</span>
                     </div>
-                    <p className="text-[10px] text-slate-500 mt-1">Shift Avg: {s.avg}</p>
                   </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* ═══════════ SCORE DISTRIBUTION HISTOGRAM ═══════════ */}
-        <section>
-          <h3 className="text-lg font-bold text-white mb-5">Score Distribution — Your Shift</h3>
-          <div className="bg-[#131b2e] rounded-xl p-6 border border-slate-700/40">
-            <div className="h-64 sm:h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={histogramData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
-                  <RechartsTooltip cursor={{ fill: 'rgba(255,255,255,0.02)' }} contentStyle={darkTooltipStyle} />
-                  <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={48}>
-                    {histogramData.map((entry, i) => (
-                      <Cell key={i} fill={entry.isUser ? '#f43f5e' : '#334155'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <p className="text-xs text-center text-slate-500 mt-2">
-              Your score range highlighted: {Math.floor(result.totalMarks / 20) * 20}-{(Math.floor(result.totalMarks / 20) + 1) * 20}
-            </p>
-          </div>
-        </section>
-
-        {/* ═══════════ CROSS-SHIFT COMPARISON (horizontal bars) ═══════════ */}
-        <section>
-          <h3 className="text-lg font-bold text-white mb-5">Cross-Shift Comparison</h3>
-          <div className="bg-[#131b2e] rounded-xl p-6 border border-slate-700/40">
-            <div className="h-72 sm:h-80 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={crossShiftData} layout="vertical" margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#1e293b" />
-                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} domain={[0, 'dataMax + 10']} />
-                  <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} width={50} />
-                  <RechartsTooltip cursor={{ fill: 'rgba(255,255,255,0.02)' }} contentStyle={darkTooltipStyle} />
-                  <Bar dataKey="average" radius={[0, 4, 4, 0]} maxBarSize={20}>
-                    {crossShiftData.map((entry, i) => (
-                      <Cell key={i} fill={entry.isCurrent ? '#f43f5e' : '#38bdf8'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+                );
+              })}
             </div>
           </div>
         </section>
+      )}
 
-        {/* ═══════════ TOPPER & AVERAGE TABS ═══════════ */}
-        <section>
-          <h3 className="text-lg font-bold text-white mb-4">Shift-wise Scores</h3>
-          <div className="flex gap-2 mb-4">
-            <button onClick={() => setShiftCompTab('topper')} className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${shiftCompTab === 'topper' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-[#131b2e] text-slate-400 border border-slate-700/40 hover:text-slate-200'}`}>
-              Topper Scores
-            </button>
-            <button onClick={() => setShiftCompTab('average')} className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${shiftCompTab === 'average' ? 'bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30' : 'bg-[#131b2e] text-slate-400 border border-slate-700/40 hover:text-slate-200'}`}>
-              Average Scores
-            </button>
-          </div>
-          <div className="bg-[#131b2e] rounded-xl p-6 border border-slate-700/40">
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={(shiftCompTab === 'topper' ? topperData : averageData) as any[]} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
-                  <RechartsTooltip cursor={{ fill: 'rgba(255,255,255,0.02)' }} contentStyle={darkTooltipStyle} />
-                  <Bar dataKey={shiftCompTab === 'topper' ? 'topper' : 'average'} radius={[4, 4, 0, 0]} maxBarSize={36}>
-                    {((shiftCompTab === 'topper' ? topperData : averageData) as any[]).map((entry: any, i: number) => (
-                      <Cell key={i} fill={entry.isCurrent ? '#f43f5e' : (shiftCompTab === 'topper' ? '#38bdf8' : '#c084fc')} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </section>
-
-        {/* ═══════════ SUBJECT-WISE SHIFT COMPARISON (grouped bars) ═══════════ */}
-        <section>
-          <h3 className="text-lg font-bold text-white mb-5">Subject-wise Shift Comparison</h3>
-          <div className="bg-[#131b2e] rounded-xl p-6 border border-slate-700/40">
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={subjectShiftData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} />
-                  <RechartsTooltip cursor={{ fill: 'rgba(255,255,255,0.02)' }} contentStyle={darkTooltipStyle} />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', color: '#94a3b8' }} />
-                  <Bar dataKey="physics" name="Physics" fill="#f43f5e" radius={[3, 3, 0, 0]} maxBarSize={20} />
-                  <Bar dataKey="chemistry" name="Chemistry" fill="#38bdf8" radius={[3, 3, 0, 0]} maxBarSize={20} />
-                  <Bar dataKey="maths" name="Maths" fill="#c084fc" radius={[3, 3, 0, 0]} maxBarSize={20} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </section>
-
-        {/* ═══════════ SHIFT EXPLORER — DRILL DOWN ═══════════ */}
-        {relatedShifts.length > 0 && (
-          <ShiftExplorerPanel globalStats={relatedShifts} />
-        )}
-
-        {/* ═══════════ SHIFT DIFFICULTY ANALYSIS ═══════════ */}
-        {toughestShift && easiestShift && (
-          <section>
-            <h3 className="text-lg font-bold text-white mb-5">Shift Difficulty Analysis</h3>
-            <div className="bg-[#131b2e] rounded-xl p-6 border border-slate-700/40 space-y-6">
-              {/* AI insight box */}
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center shrink-0">
-                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082" />
-                  </svg>
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-white mb-1">CETify Difficulty Insights</h4>
-                  <p className="text-xs text-slate-400 mb-3">AI-powered shift difficulty breakdown</p>
-                  <div className="bg-[#0b1120] rounded-lg p-4 border border-slate-700/40 text-sm text-slate-300 leading-relaxed">
-                    <p>Based on <strong className="text-white">{totalGlobalEntries}</strong> submissions, the toughest shift is <strong className="text-rose-400">{toughestShift.examDate} {toughestShift.shift}</strong> with an average of <strong className="text-white">{toughestShift.averageScore}</strong>, while the easiest shift is <strong className="text-emerald-400">{easiestShift.examDate} {easiestShift.shift}</strong> with an average of <strong className="text-white">{easiestShift.averageScore}</strong>.</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Toughest & Easiest cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-5">
-                  <p className="text-xs font-bold text-rose-400 uppercase tracking-widest mb-2">🔴 Toughest Shift</p>
-                  <p className="text-lg font-bold text-white">{toughestShift.examDate} — {toughestShift.shift}</p>
-                  <p className="text-sm text-slate-400 mt-1">Avg Score: <strong className="text-white">{toughestShift.averageScore}</strong> · Topper: <strong className="text-white">{toughestShift.highestScore}</strong></p>
-                </div>
-                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-5">
-                  <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-2">🟢 Easiest Shift</p>
-                  <p className="text-lg font-bold text-white">{easiestShift.examDate} — {easiestShift.shift}</p>
-                  <p className="text-sm text-slate-400 mt-1">Avg Score: <strong className="text-white">{easiestShift.averageScore}</strong> · Topper: <strong className="text-white">{easiestShift.highestScore}</strong></p>
-                </div>
-              </div>
-
-              {/* Difficulty Ranking Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-700/50">
-                      <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">#</th>
-                      <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">Shift</th>
-                      <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">Avg Score</th>
-                      <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">Topper</th>
-                      <th className="text-right px-4 py-3 text-xs font-bold text-slate-500 uppercase">Entries</th>
+      {/* ═══ QUESTION-WISE TABLE ═══ */}
+      <section>
+        <SectionHeader label="03" title="Question-wise Breakdown" />
+        <div className={`${CARD} overflow-hidden`}>
+          <div className="overflow-x-auto max-h-[420px]">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 sticky top-0 z-10">
+                <tr>
+                  <th className="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase border-b border-gray-100">Q.No</th>
+                  <th className="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase border-b border-gray-100">Subject</th>
+                  <th className="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase border-b border-gray-100">Your Ans</th>
+                  <th className="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase border-b border-gray-100">Correct</th>
+                  <th className="px-5 py-3 text-left text-xs font-bold text-gray-400 uppercase border-b border-gray-100">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {questions.map((q, i) => {
+                  const correct = q.candidateResponse === q.correctOption;
+                  const skip = !q.candidateResponse;
+                  return (
+                    <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                      <td className="px-5 py-2.5 font-mono text-xs text-gray-400">{q.questionId}</td>
+                      <td className="px-5 py-2.5 text-gray-600 font-medium">{q.subject}</td>
+                      <td className="px-5 py-2.5 font-bold text-gray-800">{q.candidateResponse || '—'}</td>
+                      <td className="px-5 py-2.5 font-bold text-[#4338ca]">{q.correctOption}</td>
+                      <td className="px-5 py-2.5">
+                        {correct ? <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 text-xs font-bold">✓</span>
+                          : skip ? <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-400 text-xs font-bold">—</span>
+                          : <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-500 text-xs font-bold">✗</span>}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {[...relatedShifts].sort((a, b) => a.averageScore - b.averageScore).map((s, i) => (
-                      <tr key={i} className={`border-b border-slate-800/50 ${s.examDate === examDate && s.shift === shift ? 'bg-indigo-500/10' : ''}`}>
-                        <td className="px-4 py-3 font-bold text-slate-400">{i + 1}</td>
-                        <td className="px-4 py-3 font-semibold text-white">{s.examDate} {s.shift}</td>
-                        <td className="px-4 py-3 font-mono text-slate-300">{s.averageScore}</td>
-                        <td className="px-4 py-3 font-mono text-fuchsia-400">{s.highestScore}</td>
-                        <td className="px-4 py-3 text-right font-mono text-slate-400">{s.totalStudents}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
-        )}
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
-        {/* ═══════════ OVERALL ENTRIES OVERVIEW (Donut) ═══════════ */}
-        <section>
-          <h3 className="text-lg font-bold text-white mb-5">Overall Entries Overview</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-[#131b2e] rounded-xl p-6 border border-slate-700/40">
-              <div className="h-60 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={entriesData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={4} dataKey="value">
-                      {entriesData.map((_, i) => <PieCell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                    </Pie>
-                    <RechartsTooltip contentStyle={darkTooltipStyle} formatter={(value: any) => [value, 'Students']} />
-                    <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+      {/* ═══ SCORE DISTRIBUTION ═══ */}
+      <section>
+        <SectionHeader label="04" title="Score Distribution" />
+        <div className={`${CARD} p-6`}>
+          <div className="h-56 sm:h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={histogramData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} allowDecimals={false} />
+                <RechartsTooltip contentStyle={tooltipStyle} />
+                <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={40}>
+                  {histogramData.map((e, i) => <Cell key={i} fill={e.isUser ? '#4338ca' : '#e2e8f0'} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="text-xs text-center text-gray-400 mt-2">Your range highlighted in indigo</p>
+        </div>
+      </section>
+
+      {/* ═══ CROSS-SHIFT + TOPPER CHARTS ═══ */}
+      <section>
+        <SectionHeader label="05" title="Cross-Shift Comparison" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Average Comparison */}
+          <div className={`${CARD} p-6`}>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Shift Averages</p>
+            <div className="h-56 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={crossShiftData} layout="vertical" margin={{ top: 5, right: 15, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                  <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} width={40} />
+                  <RechartsTooltip contentStyle={tooltipStyle} />
+                  <Bar dataKey="average" radius={[0, 6, 6, 0]} maxBarSize={16}>
+                    {crossShiftData.map((e, i) => <Cell key={i} fill={e.isCurrent ? '#4338ca' : '#c7d2fe'} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-            <div className="bg-[#131b2e] rounded-xl p-6 border border-slate-700/40 flex flex-col justify-center space-y-3">
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Entries</p>
-                <p className="text-4xl font-black text-rose-500">{totalGlobalEntries}</p>
-              </div>
+          </div>
+          {/* Topper Comparison */}
+          <div className={`${CARD} p-6`}>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Shift Toppers</p>
+            <div className="h-56 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topperData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                  <RechartsTooltip contentStyle={tooltipStyle} />
+                  <Bar dataKey="topper" radius={[6, 6, 0, 0]} maxBarSize={30}>
+                    {topperData.map((e, i) => <Cell key={i} fill={(e as any).isCurrent ? '#f59e0b' : '#fde68a'} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ SUBJECT-WISE PER SHIFT ═══ */}
+      <section>
+        <SectionHeader label="06" title="Subject Averages Across Shifts" />
+        <div className={`${CARD} p-6`}>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={subjectShiftData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                <RechartsTooltip contentStyle={tooltipStyle} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', color: '#64748b' }} />
+                <Bar dataKey="physics" name="Physics" fill="#4338ca" radius={[3, 3, 0, 0]} maxBarSize={16} />
+                <Bar dataKey="chemistry" name="Chemistry" fill="#10b981" radius={[3, 3, 0, 0]} maxBarSize={16} />
+                <Bar dataKey="maths" name="Maths" fill="#f59e0b" radius={[3, 3, 0, 0]} maxBarSize={16} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ SHIFT DIFFICULTY ═══ */}
+      {toughestShift && easiestShift && (
+        <section>
+          <SectionHeader label="07" title="Shift Difficulty Ranking" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div className={`${CARD} p-5 border-l-4 border-l-rose-500`}>
+              <p className="text-xs font-bold text-rose-500 uppercase tracking-wider mb-1">Toughest Shift</p>
+              <p className="text-lg font-bold text-gray-800">{toughestShift.examDate} · {toughestShift.shift}</p>
+              <p className="text-sm text-gray-500 mt-1">Avg: <strong className="text-gray-800">{toughestShift.averageScore}</strong></p>
+            </div>
+            <div className={`${CARD} p-5 border-l-4 border-l-emerald-500`}>
+              <p className="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-1">Easiest Shift</p>
+              <p className="text-lg font-bold text-gray-800">{easiestShift.examDate} · {easiestShift.shift}</p>
+              <p className="text-sm text-gray-500 mt-1">Avg: <strong className="text-gray-800">{easiestShift.averageScore}</strong></p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ═══ ENTRIES OVERVIEW ═══ */}
+      <section>
+        <SectionHeader label="08" title="Entries Overview" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className={`${CARD} p-6 flex items-center justify-center`}>
+            <div className="h-48 w-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={entriesData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={4} dataKey="value">
+                    {entriesData.map((_, i) => <PieCell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                  </Pie>
+                  <RechartsTooltip contentStyle={tooltipStyle} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <div className={`${CARD} p-6 sm:col-span-2 flex flex-col justify-center`}>
+            <p className="text-4xl font-black text-[#4338ca]">{totalGlobalEntries}</p>
+            <p className={`${LABEL} mt-1`}>Total Entries</p>
+            <div className="mt-4 space-y-2">
               {entriesData.map((e, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                  <span className="text-sm text-slate-300 font-semibold">{e.name}: <strong className="text-white">{e.value}</strong></span>
+                  <span className="text-sm text-gray-600 font-semibold">{e.name}: <strong className="text-gray-800">{e.value}</strong></span>
                 </div>
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ═══ SHIFT EXPLORER ═══ */}
+      {relatedShifts.length > 0 && (
+        <section>
+          <SectionHeader label="09" title="Shift Explorer" />
+          <ShiftExplorerPanel globalStats={relatedShifts} />
         </section>
+      )}
 
-      </div>
     </div>
   );
 }
 
-/* ════════════════════════════════════════════════════════════════
-   HELPER: Dark Tooltip Style
-   ════════════════════════════════════════════════════════════════ */
-const darkTooltipStyle: React.CSSProperties = {
-  borderRadius: '10px',
-  border: '1px solid #334155',
-  backgroundColor: '#1e293b',
-  color: '#f8fafc',
-  fontSize: '12px',
-};
-
-/* ════════════════════════════════════════════════════════════════
-   HELPER: Stat Card
-   ════════════════════════════════════════════════════════════════ */
-function StatCard({ icon, iconBg, iconColor, value, label }: {
-  icon: string; iconBg: string; iconColor: string; value: number | string; label: string;
-}) {
-  const icons: Record<string, React.ReactNode> = {
-    'arrow-up': <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />,
-    'arrow-down': <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />,
-    'equals': <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />,
-    'chart': <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M3 20.25h18M3.75 3.75v16.5" />,
-    'star': <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />,
-    'users': <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />,
-  };
+/* ──── Section Header ──── */
+function SectionHeader({ label, title }: { label: string; title: string }) {
   return (
-    <div className="bg-[#131b2e] rounded-xl p-4 border border-slate-700/40 flex items-center gap-3">
-      <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
-        <svg className={`w-4.5 h-4.5 ${iconColor}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          {icons[icon]}
-        </svg>
-      </div>
-      <div>
-        <p className="text-xl font-black text-white leading-tight">{value}</p>
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{label}</p>
-      </div>
+    <div className="mb-4">
+      <p className="text-[10px] font-bold text-[#4338ca] uppercase tracking-widest mb-0.5">Section {label}</p>
+      <h3 className="text-lg font-bold text-[#0f172a]">{title}</h3>
     </div>
   );
 }
 
-/* ════════════════════════════════════════════════════════════════
-   SHIFT EXPLORER PANEL (interactive dropdown)
-   ════════════════════════════════════════════════════════════════ */
-function ShiftExplorerPanel({ globalStats }: { globalStats: GlobalShiftStats[] }) {
+/* ──── Mini Stat Card ──── */
+function MiniStat({ label, value, color }: { label: string; value: number | string; color: string }) {
+  return (
+    <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:shadow-md transition-shadow`}>
+      <p className="text-2xl font-black leading-tight"><span className={color}>{value}</span></p>
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{label}</p>
+    </div>
+  );
+}
+
+/* ──── Shift Explorer Panel ──── */
+export function ShiftExplorerPanel({ globalStats }: { globalStats: GlobalShiftStats[] }) {
   const [selectedKey, setSelectedKey] = useState(
     globalStats.length > 0 ? `${globalStats[0].examDate}|${globalStats[0].shift}` : ''
   );
   const selected = globalStats.find(s => `${s.examDate}|${s.shift}` === selectedKey) || null;
 
   return (
-    <section>
-      <h3 className="text-lg font-bold text-white mb-5">Shift Explorer</h3>
-      <div className="bg-[#131b2e] rounded-xl p-6 border border-slate-700/40">
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Select Any Shift</p>
-        <select
-          value={selectedKey}
-          onChange={(e) => setSelectedKey(e.target.value)}
-          className="w-full sm:w-72 py-3 px-4 rounded-lg border border-slate-600 bg-[#0b1120] text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 mb-6"
-        >
-          {globalStats.map(s => (
-            <option key={`${s.examDate}|${s.shift}`} value={`${s.examDate}|${s.shift}`}>
-              {s.examDate} - {s.shift === 'Shift 1' ? 'Morning' : 'Evening'}
-            </option>
-          ))}
-        </select>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <select
+        value={selectedKey}
+        onChange={(e) => setSelectedKey(e.target.value)}
+        className="w-full sm:w-72 py-3 px-4 rounded-xl border border-gray-200 text-[#0f172a] bg-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#4338ca]/20 focus:border-[#4338ca] mb-5"
+      >
+        {globalStats.map(s => (
+          <option key={`${s.examDate}|${s.shift}`} value={`${s.examDate}|${s.shift}`}>
+            {s.examDate} - {s.shift === 'Shift 1' ? 'Morning' : 'Evening'}
+          </option>
+        ))}
+      </select>
 
-        {selected && (
-          <>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-              {[
-                { v: selected.totalStudents, l: 'Participants' },
-                { v: selected.averageScore, l: 'Average Score' },
-                { v: selected.highestScore, l: 'Highest Score' },
-                { v: selected.medianScore, l: 'Median Score' },
-                { v: selected.lowestScore, l: 'Lowest Score' },
-                { v: `${selected.scoreSpread}`, l: 'Score Spread' },
-              ].map((c, i) => (
-                <div key={i} className="bg-[#0b1120] rounded-lg p-4 border border-slate-700/40">
-                  <p className="text-2xl font-black text-white">{c.v}</p>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1">{c.l}</p>
-                </div>
-              ))}
-            </div>
+      {selected && (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
+            {[
+              { v: selected.totalStudents, l: 'Participants' },
+              { v: selected.averageScore, l: 'Average Score' },
+              { v: selected.highestScore, l: 'Highest Score' },
+              { v: selected.medianScore, l: 'Median Score' },
+              { v: selected.lowestScore, l: 'Lowest Score' },
+              { v: selected.scoreSpread, l: 'Score Spread' },
+            ].map((c, i) => (
+              <div key={i} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <p className="text-2xl font-black text-[#0f172a]">{c.v}</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{c.l}</p>
+              </div>
+            ))}
+          </div>
 
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Subject-wise Averages</p>
-            <div className="overflow-hidden rounded-lg border border-slate-700/40">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-700/50">
-                    <th className="text-left px-4 py-2.5 text-xs font-bold text-slate-500 uppercase">Subject</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-bold text-slate-500 uppercase">Average</th>
-                    <th className="text-right px-4 py-2.5 text-xs font-bold text-slate-500 uppercase">Participants</th>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Subject-wise Averages</p>
+          <div className="overflow-hidden rounded-xl border border-gray-100">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="text-left px-4 py-2.5 text-xs font-bold text-gray-400 uppercase">Subject</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-bold text-gray-400 uppercase">Average</th>
+                  <th className="text-right px-4 py-2.5 text-xs font-bold text-gray-400 uppercase">Entries</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { n: 'Physics', a: selected.physicsAvg },
+                  { n: 'Chemistry', a: selected.chemistryAvg },
+                  { n: 'Mathematics', a: selected.mathsAvg },
+                ].map((s, i) => (
+                  <tr key={i} className="border-t border-gray-50">
+                    <td className="px-4 py-2.5 font-bold text-gray-800">{s.n}</td>
+                    <td className="px-4 py-2.5 font-mono text-gray-600">Avg: {s.a}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-gray-400">{selected.totalStudents}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { n: 'Physics', a: selected.physicsAvg },
-                    { n: 'Chemistry', a: selected.chemistryAvg },
-                    { n: 'Mathematics', a: selected.mathsAvg },
-                  ].map((s, i) => (
-                    <tr key={i} className="border-b border-slate-800/50 last:border-0">
-                      <td className="px-4 py-2.5 font-bold text-white">{s.n}</td>
-                      <td className="px-4 py-2.5 font-mono text-slate-300">Avg: {s.a}</td>
-                      <td className="px-4 py-2.5 text-right font-mono text-slate-500">Total entries: {selected.totalStudents}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </div>
-    </section>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

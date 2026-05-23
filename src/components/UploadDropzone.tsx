@@ -60,12 +60,14 @@ function hasValidExtension(file: File): boolean {
   return false;
 }
 
+export const IS_ATTEMPT_1_OPEN = true; // Toggle this to lock/unlock Attempt 1 uploads
+
 export default function UploadDropzone({ onFileContent, onFileSelectSilent }: UploadDropzoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [attempt, setAttempt] = useState('Attempt 1');
-  const [slot, setSlot] = useState('11 April Shift 1');
+  const [attempt, setAttempt] = useState(IS_ATTEMPT_1_OPEN ? 'Attempt 1' : 'Attempt 2');
+  const [slot, setSlot] = useState(IS_ATTEMPT_1_OPEN ? SLOT_OPTIONS_ATTEMPT_1[0] : SLOT_OPTIONS_ATTEMPT_2[0]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const processFile = useCallback((file: File) => {
@@ -141,7 +143,9 @@ export default function UploadDropzone({ onFileContent, onFileSelectSilent }: Up
             }}
             className="w-full py-3.5 px-4 rounded-xl border border-gray-200 text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#4338ca]/20 focus:border-[#4338ca] text-sm font-semibold transition-all hover:bg-gray-50"
           >
-            <option value="Attempt 1">Attempt 1 (April Session)</option>
+            <option value="Attempt 1" disabled={!IS_ATTEMPT_1_OPEN} className={!IS_ATTEMPT_1_OPEN ? "text-gray-400" : ""}>
+              Attempt 1 (April Session) {!IS_ATTEMPT_1_OPEN && '— Closed'}
+            </option>
             <option value="Attempt 2">Attempt 2 (May Session)</option>
           </select>
         </div>

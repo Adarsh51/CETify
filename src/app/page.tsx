@@ -50,7 +50,7 @@ const features = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
       </svg>
     ),
-    title: 'Practice Quiz',
+    title: 'The Arsenal',
     desc: 'Test yourself with real past MHT CET questions powered by AI. Evaluate your preparedness instantly.',
   },
 ];
@@ -247,6 +247,11 @@ export default function HomePage() {
       {/* Show upload section when idle/error/parsing, results when done */}
       {appState !== 'results' && (
         <>
+          {/* Top Banner for Attempt 2 */}
+          <div className="bg-[#4338ca] text-white text-center py-2.5 px-4 text-sm font-semibold tracking-wide shadow-sm">
+            🚀 The system is now ready for Attempt 2 (May Session) Response Sheets!
+          </div>
+
           {/* Hero + Upload */}
           <section className="py-12 md:py-16 px-4">
             <div className="max-w-3xl mx-auto text-center">
@@ -558,6 +563,13 @@ export default function HomePage() {
                   <div>
                     <ResultSummary result={result} meta={meta} layout="sidebar" />
                   </div>
+                </div>
+
+                {/* Percentile Note */}
+                <div className="mt-8 text-center animate-fade-in-up delay-200">
+                  <p className="text-xs text-gray-500 max-w-2xl mx-auto bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                    <strong>Looking for a Percentile Predictor?</strong> I intentionally didn't build one because MHT CET percentile predictions are often highly inaccurate and can cause unnecessary panic. If you really want an estimate, you can use GanitAnk's predictor on the PraveshAnk app for now.
+                  </p>
                 </div>
               </>
             ) : (

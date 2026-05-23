@@ -164,6 +164,31 @@ export default function AboutPage() {
           </div>
         </section>
 
+        {/* Meet the Creator */}
+        <section className="bg-white rounded-xl border border-gray-200 p-6 sm:p-8">
+          <h2 className="text-xl font-bold text-[#0f172a] mb-4">Meet the Creator</h2>
+          <div className="text-gray-600 text-sm leading-relaxed mb-4">
+            <p className="mb-2">
+              Hey! I'm <strong>Adarsh Dubey</strong>, the developer behind CETify.
+            </p>
+            <p>
+              I built this platform to solve a real problem I faced during my own MHT CET journey. 
+              My goal was to create something fast, beautiful, and completely privacy-focused for the student community.
+            </p>
+          </div>
+          <a
+            href="https://www.linkedin.com/in/adarsh-dubey-048689213"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-[#4338ca] hover:text-[#3730a3] font-semibold transition-colors text-sm"
+          >
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+            </svg>
+            Connect with me on LinkedIn
+          </a>
+        </section>
+
         {/* CTA */}
         <div className="text-center py-4">
           <Link
