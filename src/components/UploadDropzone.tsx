@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from 'react';
 
-const SLOT_OPTIONS = [
+export const SLOT_OPTIONS_ATTEMPT_1 = [
   '11 April Shift 1',
   '11 April Shift 2',
   '13 April Shift 1',
@@ -21,6 +21,9 @@ const SLOT_OPTIONS = [
   '19 April Shift 2',
   '20 April Shift 1',
   '20 April Shift 2',
+];
+
+export const SLOT_OPTIONS_ATTEMPT_2 = [
   '12 May Shift 1',
   '12 May Shift 2',
   '13 May Shift 1',
@@ -131,7 +134,11 @@ export default function UploadDropzone({ onFileContent, onFileSelectSilent }: Up
           <select
             id="attempt-select"
             value={attempt}
-            onChange={(e) => setAttempt(e.target.value)}
+            onChange={(e) => {
+              const newAttempt = e.target.value;
+              setAttempt(newAttempt);
+              setSlot(newAttempt === 'Attempt 1' ? SLOT_OPTIONS_ATTEMPT_1[0] : SLOT_OPTIONS_ATTEMPT_2[0]);
+            }}
             className="w-full py-3.5 px-4 rounded-xl border border-gray-200 text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#4338ca]/20 focus:border-[#4338ca] text-sm font-semibold transition-all hover:bg-gray-50"
           >
             <option value="Attempt 1">Attempt 1 (April Session)</option>
@@ -148,11 +155,18 @@ export default function UploadDropzone({ onFileContent, onFileSelectSilent }: Up
             onChange={(e) => setSlot(e.target.value)}
             className="w-full py-3.5 px-4 rounded-xl border border-gray-200 text-[#0f172a] bg-white focus:outline-none focus:ring-2 focus:ring-[#4338ca]/20 focus:border-[#4338ca] text-sm font-semibold transition-all hover:bg-gray-50"
           >
-            {SLOT_OPTIONS.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
+            {attempt === 'Attempt 1' 
+              ? SLOT_OPTIONS_ATTEMPT_1.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))
+              : SLOT_OPTIONS_ATTEMPT_2.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))
+            }
           </select>
         </div>
       </div>

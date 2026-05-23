@@ -35,6 +35,12 @@ export interface GlobalShiftStats {
   highestScore: number;
   lowestScore: number;
   averageScore: number;
+  medianScore: number;
+  scoreSpread: number;
+  physicsAvg: number;
+  chemistryAvg: number;
+  mathsAvg: number;
+  scoresList: number[];
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -323,6 +329,9 @@ export async function getShiftStats(
 export async function getAllShiftsStats(): Promise<GlobalShiftStats[]> {
   let records: Array<{
     total_marks: number;
+    physics_marks: number;
+    chemistry_marks: number;
+    maths_marks: number;
     group_type: 'PCM' | 'PCB';
     attempt: 'Attempt 1' | 'Attempt 2';
     exam_date: string;
@@ -335,11 +344,14 @@ export async function getAllShiftsStats(): Promise<GlobalShiftStats[]> {
     try {
       const { data, error } = await supabase
         .from('scores')
-        .select('total_marks, group_type, attempt, exam_date, shift');
+        .select('total_marks, physics_marks, chemistry_marks, maths_marks, group_type, attempt, exam_date, shift');
 
       if (!error && data) {
         records = data.map(d => ({
           total_marks: d.total_marks,
+          physics_marks: d.physics_marks || 0,
+          chemistry_marks: d.chemistry_marks || 0,
+          maths_marks: d.maths_marks || 0,
           group_type: d.group_type as 'PCM' | 'PCB',
           attempt: d.attempt as 'Attempt 1' | 'Attempt 2',
           exam_date: d.exam_date,
@@ -359,6 +371,9 @@ export async function getAllShiftsStats(): Promise<GlobalShiftStats[]> {
     const local = getLocalRecords();
     records = local.map(r => ({
       total_marks: r.totalMarks,
+      physics_marks: r.physicsMarks || 0,
+      chemistry_marks: r.chemistryMarks || 0,
+      maths_marks: r.mathsMarks || 0,
       group_type: r.groupType,
       attempt: r.attempt,
       exam_date: r.examDate,
@@ -373,6 +388,9 @@ export async function getAllShiftsStats(): Promise<GlobalShiftStats[]> {
 function aggregateAllShifts(
   records: Array<{
     total_marks: number;
+    physics_marks: number;
+    chemistry_marks: number;
+    maths_marks: number;
     group_type: 'PCM' | 'PCB';
     attempt: 'Attempt 1' | 'Attempt 2';
     exam_date: string;
@@ -381,6 +399,9 @@ function aggregateAllShifts(
 ): GlobalShiftStats[] {
   const groups: Record<string, {
     scores: number[];
+    physicsScores: number[];
+    chemistryScores: number[];
+    mathsScores: number[];
     groupType: 'PCM' | 'PCB';
     attempt: 'Attempt 1' | 'Attempt 2';
     examDate: string;
@@ -392,6 +413,9 @@ function aggregateAllShifts(
     if (!groups[key]) {
       groups[key] = {
         scores: [],
+        physicsScores: [],
+        chemistryScores: [],
+        mathsScores: [],
         groupType: r.group_type,
         attempt: r.attempt,
         examDate: r.exam_date,
@@ -399,14 +423,29 @@ function aggregateAllShifts(
       };
     }
     groups[key].scores.push(r.total_marks);
+    groups[key].physicsScores.push(r.physics_marks);
+    groups[key].chemistryScores.push(r.chemistry_marks);
+    groups[key].mathsScores.push(r.maths_marks);
   }
 
   const result = Object.values(groups).map(g => {
     const totalStudents = g.scores.length;
-    const highestScore = Math.max(...g.scores);
-    const lowestScore = Math.min(...g.scores);
-    const sum = g.scores.reduce((sum, score) => sum + score, 0);
+    const sortedScores = [...g.scores].sort((a, b) => a - b);
+    const highestScore = sortedScores[totalStudents - 1] || 0;
+    const lowestScore = sortedScores[0] || 0;
+    const sum = sortedScores.reduce((sum, score) => sum + score, 0);
     const averageScore = Math.round((sum / totalStudents) * 10) / 10;
+    
+    let medianScore = 0;
+    if (totalStudents > 0) {
+      const mid = Math.floor(totalStudents / 2);
+      medianScore = totalStudents % 2 !== 0 ? sortedScores[mid] : (sortedScores[mid - 1] + sortedScores[mid]) / 2;
+    }
+    const scoreSpread = highestScore - lowestScore;
+    
+    const physicsSum = g.physicsScores.reduce((s, m) => s + m, 0);
+    const chemistrySum = g.chemistryScores.reduce((s, m) => s + m, 0);
+    const mathsSum = g.mathsScores.reduce((s, m) => s + m, 0);
 
     return {
       groupType: g.groupType,
@@ -417,6 +456,12 @@ function aggregateAllShifts(
       highestScore,
       lowestScore,
       averageScore,
+      medianScore: Math.round(medianScore * 10) / 10,
+      scoreSpread,
+      physicsAvg: Math.round((physicsSum / totalStudents) * 10) / 10,
+      chemistryAvg: Math.round((chemistrySum / totalStudents) * 10) / 10,
+      mathsAvg: Math.round((mathsSum / totalStudents) * 10) / 10,
+      scoresList: sortedScores,
     };
   });
 
