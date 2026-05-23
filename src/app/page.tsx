@@ -43,6 +43,15 @@ const features = [
     title: 'Real-time Shift Rankings',
     desc: 'Compare your scores against other candidates in the same shift to see where you stand.',
   },
+  {
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+      </svg>
+    ),
+    title: 'Practice Quiz',
+    desc: 'Test yourself with real past MHT CET questions powered by AI. Evaluate your preparedness instantly.',
+  },
 ];
 
 function parseSelectedSlot(slotStr: string): { examDate: string; shift: 'Shift 1' | 'Shift 2'; groupType: 'PCM' | 'PCB' } {
@@ -433,8 +442,8 @@ export default function HomePage() {
 
           {/* Features */}
           <section className="py-16 px-4 border-t border-gray-100 bg-gray-50/50">
-            <div className="max-w-5xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="max-w-6xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {features.map((f) => (
                   <div
                     key={f.title}

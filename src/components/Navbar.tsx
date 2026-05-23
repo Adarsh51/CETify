@@ -8,6 +8,7 @@ import Image from 'next/image';
 
 const links = [
   { href: '/', label: 'Home' },
+  { href: '/quiz', label: 'Practice Quiz' },
   { href: '/about', label: 'About' },
   { href: '/faq', label: 'FAQ' },
 ];
@@ -49,12 +50,14 @@ export default function Navbar() {
         </nav>
 
         {/* Upload CTA */}
-        <Link
-          href="/"
-          className="hidden md:inline-flex items-center gap-2 px-5 py-2.5 bg-[#4338ca] text-white text-sm font-semibold rounded-lg hover:bg-[#3730a3] transition-colors"
-        >
-          Upload Sheet
-        </Link>
+        <div className="hidden md:flex items-center gap-2">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#4338ca] text-white text-sm font-semibold rounded-lg hover:bg-[#3730a3] transition-colors"
+            >
+              Upload Sheet
+            </Link>
+        </div>
 
         {/* Mobile hamburger */}
         <button
