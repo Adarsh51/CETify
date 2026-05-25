@@ -272,7 +272,7 @@ export default function HomePage() {
           <svg className="w-20 h-20 text-red-500 mb-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.83m0 0l-3.32-3.32m3.32 3.32a2.25 2.25 0 01-3.182-3.182m3.182 3.182L15 12m-3-3l-3.32-3.32m0 0L3 3m5.68 5.68a2.25 2.25 0 003.182 3.182m-3.182-3.182l-3-3" />
           </svg>
-          <h2 className="text-4xl font-black tracking-tight mb-4 text-center">System Offline</h2>
+          <h2 className="text-4xl font-black tracking-tight mb-4 text-center">System Upgrading</h2>
           <p className="text-gray-400 text-lg text-center max-w-md">Our servers are currently undergoing scheduled maintenance and system upgrades. We will be back online shortly.</p>
         </div>
       ) : (
