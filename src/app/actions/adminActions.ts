@@ -19,5 +19,6 @@ export async function saveAdminConfig(formData: FormData) {
   const success = await updateAppConfig(updates);
   if (success) {
     revalidatePath('/'); // Force homepage to update with new configs
+    revalidatePath('/admin'); // Force admin page to re-fetch configs
   }
 }
