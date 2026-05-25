@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache';
 export async function saveAdminConfig(formData: FormData) {
   const cookieStore = await cookies();
   const session = cookieStore.get('admin_session');
-  if (session?.value !== 'true') return { success: false, error: 'Unauthorized' };
+  if (session?.value !== 'true') return;
 
   const updates = {
     attempt_1_open: formData.get('attempt_1_open') === 'on',
@@ -19,7 +19,5 @@ export async function saveAdminConfig(formData: FormData) {
   const success = await updateAppConfig(updates);
   if (success) {
     revalidatePath('/'); // Force homepage to update with new configs
-    return { success: true };
   }
-  return { success: false, error: 'Database update failed' };
 }
