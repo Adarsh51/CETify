@@ -125,8 +125,9 @@ export async function checkExistingShift(
   // 2. Check Supabase
   if (supabase) {
     try {
+      const tableName = attempt === 'Attempt 2' ? 'scores_attempt2' : 'scores';
       const { data, error } = await supabase
-        .from('scores')
+        .from(tableName)
         .select('exam_date, shift')
         .eq('application_number', applicationNumber)
         .eq('attempt', attempt)
@@ -160,8 +161,9 @@ export async function saveScore(record: CandidateScoreRecord): Promise<boolean> 
   }
 
   try {
+    const tableName = record.attempt === 'Attempt 2' ? 'scores_attempt2' : 'scores';
     const { error } = await supabase
-      .from('scores')
+      .from(tableName)
       .upsert({
         candidate_name: record.candidateName,
         application_number: record.applicationNumber,
@@ -203,8 +205,9 @@ export async function getShiftStats(
 
   if (supabase) {
     try {
+      const tableName = record.attempt === 'Attempt 2' ? 'scores_attempt2' : 'scores';
       const { data, error } = await supabase
-        .from('scores')
+        .from(tableName)
         .select('*')
         .eq('group_type', record.groupType)
         .eq('attempt', record.attempt)
@@ -305,12 +308,20 @@ export async function getAllShiftsStats(): Promise<GlobalShiftStats[]> {
 
   if (supabase) {
     try {
-      const { data, error } = await supabase
-        .from('scores')
-        .select('total_marks, physics_marks, chemistry_marks, maths_marks, group_type, attempt, exam_date, shift');
+      const [attempt1Res, attempt2Res] = await Promise.all([
+        supabase.from('scores').select('total_marks, physics_marks, chemistry_marks, maths_marks, group_type, attempt, exam_date, shift'),
+        supabase.from('scores_attempt2').select('total_marks, physics_marks, chemistry_marks, maths_marks, group_type, attempt, exam_date, shift')
+      ]);
 
-      if (!error && data) {
-        records = data.map(d => ({
+      const allData = [];
+      if (!attempt1Res.error && attempt1Res.data) allData.push(...attempt1Res.data);
+      else if (attempt1Res.error) console.warn('Supabase fetch global stats error (Attempt 1):', attempt1Res.error.message);
+      
+      if (!attempt2Res.error && attempt2Res.data) allData.push(...attempt2Res.data);
+      else if (attempt2Res.error) console.warn('Supabase fetch global stats error (Attempt 2):', attempt2Res.error.message);
+
+      if (allData.length > 0) {
+        records = allData.map(d => ({
           total_marks: d.total_marks,
           physics_marks: d.physics_marks || 0,
           chemistry_marks: d.chemistry_marks || 0,
@@ -321,8 +332,6 @@ export async function getAllShiftsStats(): Promise<GlobalShiftStats[]> {
           shift: d.shift as 'Shift 1' | 'Shift 2',
         }));
         isFromSupabase = true;
-      } else if (error) {
-        console.warn('Supabase fetch global stats error:', error.message);
       }
     } catch (e) {
       console.warn('Supabase fetch global stats error:', e);
