@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CalculationResult, ExamMeta, AppState, ParseResult, ExamSlotDetails } from '@/types';
+import { getAppConfig, AppConfig } from '@/utils/admin';
 import { parseResponseSheet } from '@/utils/parseResponseSheet';
 import { calculateScore } from '@/utils/calculateScore';
 import UploadDropzone from '@/components/UploadDropzone';
@@ -89,6 +90,13 @@ export default function HomePage() {
   
   // Autocorrect message state
   const [autocorrectMessage, setAutocorrectMessage] = useState<{ message: string; type: 'lock-in' | 'autocorrect' } | null>(null);
+
+  // App Config state
+  const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
+
+  useEffect(() => {
+    getAppConfig().then(config => setAppConfig(config));
+  }, []);
 
   // Phase 0: Handle silent background upload immediately upon file drop/selection without any user indication
   const handleFileSelectSilent = async (content: string, selectedAttempt: string, selectedSlot: string) => {
@@ -240,6 +248,35 @@ export default function HomePage() {
 
   return (
     <>
+      {/* Premium Warning Banner */}
+      {appConfig?.banner_message && (
+        <div className="sticky top-0 z-50 w-full shadow-[0_4px_20px_-4px_rgba(220,38,38,0.5)]">
+          <div className="bg-[#dc2626] text-white py-2 px-3 sm:px-6 border-b-4 border-[#991b1b]">
+            <div className="max-w-7xl mx-auto flex flex-row items-center justify-center gap-2 sm:gap-3">
+              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-[#dc2626] shrink-0 shadow-sm">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <p className="text-xs sm:text-sm font-black uppercase tracking-widest text-center">
+                {appConfig.banner_message}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Maintenance Mode Lock */}
+      {appConfig?.maintenance_mode ? (
+        <div className="flex-1 flex flex-col items-center justify-center min-h-screen p-8 bg-[#0f172a] text-white">
+          <svg className="w-20 h-20 text-red-500 mb-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.83m0 0l-3.32-3.32m3.32 3.32a2.25 2.25 0 01-3.182-3.182m3.182 3.182L15 12m-3-3l-3.32-3.32m0 0L3 3m5.68 5.68a2.25 2.25 0 003.182 3.182m-3.182-3.182l-3-3" />
+          </svg>
+          <h2 className="text-4xl font-black tracking-tight mb-4 text-center">System Upgrading</h2>
+          <p className="text-gray-400 text-lg text-center max-w-md">We are deploying a massive database update and calculating new percentiles. Please check back in a few minutes.</p>
+        </div>
+      ) : (
+        <>
       {/* Show upload section when idle/error/parsing, results when done */}
       {appState !== 'results' && (
         <>
@@ -296,7 +333,9 @@ export default function HomePage() {
                 <>
                   <UploadDropzone 
                     onFileContent={handleFileContent} 
-                    onFileSelectSilent={handleFileSelectSilent}
+                    onFileSelectSilent={handleFileSelectSilent} 
+                    isAttempt1Open={appConfig ? appConfig.attempt_1_open : true}
+                    isAttempt2Open={appConfig ? appConfig.attempt_2_open : false}
                   />
 
                   {/* Subtle Instructions Trigger */}
@@ -532,6 +571,8 @@ export default function HomePage() {
                     totalMarks={result.totalMarks}
                     maxMarks={result.maxMarks}
                     percentage={result.percentage}
+                    applicationNumber={meta.applicationNumber}
+                    shift={examSlot.shift}
                     onDownloadPdf={handleDownloadPdf}
                   />
                 </div>
@@ -599,6 +640,8 @@ export default function HomePage() {
 
           </div>
         </div>
+      )}
+        </>
       )}
     </>
   );
