@@ -623,7 +623,7 @@ export default function HomePage() {
                     maxMarks={result.maxMarks}
                     percentage={result.percentage}
                     applicationNumber={meta.applicationNumber}
-                    shift={examSlot.shift}
+                    shift={`${examSlot.examDate.split(' ')[1]} ${examSlot.examDate.split(' ')[0]} ${examSlot.shift}`}
                     onDownloadPdf={handleDownloadPdf}
                   />
                 </div>

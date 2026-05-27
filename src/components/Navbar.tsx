@@ -8,6 +8,7 @@ import Image from 'next/image';
 
 const links = [
   { href: '/', label: 'Home' },
+  { href: '/predictor', label: 'Rank Predictor' },
   { href: '/quiz', label: 'The Arsenal' },
   { href: '/about', label: 'About' },
   { href: '/faq', label: 'FAQ' },

@@ -5,9 +5,10 @@ import { getAvailableQuizShifts } from '@/utils/quiz';
 
 interface QuizSetupProps {
   onStart: (shift: string, subject: string | null, count: number) => void;
+  isLocked?: boolean;
 }
 
-export default function QuizSetup({ onStart }: QuizSetupProps) {
+export default function QuizSetup({ onStart, isLocked = false }: QuizSetupProps) {
   const [shifts, setShifts] = useState<{examDate: string, shift: string, totalCount: number}[]>([]);
   const [selectedShift, setSelectedShift] = useState<string>('random');
   const [selectedSubject, setSelectedSubject] = useState<string>('All');
@@ -16,6 +17,19 @@ export default function QuizSetup({ onStart }: QuizSetupProps) {
 
   useEffect(() => {
     async function loadShifts() {
+      if (isLocked) {
+        // Load realistic static shifts to populate the mock UI without querying the DB
+        setShifts([
+          { examDate: '12 May 2026', shift: 'Shift 1', totalCount: 124 },
+          { examDate: '12 May 2026', shift: 'Shift 2', totalCount: 142 },
+          { examDate: '13 May 2026', shift: 'Shift 1', totalCount: 118 },
+          { examDate: '13 May 2026', shift: 'Shift 2', totalCount: 135 },
+          { examDate: '14 May 2026', shift: 'Shift 1', totalCount: 150 },
+        ]);
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const data = await getAvailableQuizShifts();
         setShifts(data);
@@ -26,7 +40,7 @@ export default function QuizSetup({ onStart }: QuizSetupProps) {
       }
     }
     loadShifts();
-  }, []);
+  }, [isLocked]);
 
   const handleStart = () => {
     onStart(
