@@ -356,6 +356,23 @@ export async function getAllShiftsStats(): Promise<GlobalShiftStats[]> {
   return aggregateAllShifts(records);
 }
 
+// Helper to normalize date formats (e.g. "12 May" -> "May 12")
+function normalizeExamDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const trimmed = dateStr.trim();
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 2) {
+    const [first, second] = parts;
+    const isFirstNum = !isNaN(Number(first));
+    const isSecondNum = !isNaN(Number(second));
+    if (isFirstNum && !isSecondNum) {
+      // e.g. "12 May" -> "May 12"
+      return `${second} ${first}`;
+    }
+  }
+  return trimmed;
+}
+
 // Internal helper to group and aggregate shift records
 function aggregateAllShifts(
   records: Array<{
@@ -381,7 +398,8 @@ function aggregateAllShifts(
   }> = {};
 
   for (const r of records) {
-    const key = `${r.attempt}-${r.group_type}-${r.exam_date}-${r.shift}`;
+    const normDate = normalizeExamDate(r.exam_date);
+    const key = `${r.attempt}-${r.group_type}-${normDate}-${r.shift}`;
     if (!groups[key]) {
       groups[key] = {
         scores: [],
@@ -390,7 +408,7 @@ function aggregateAllShifts(
         mathsScores: [],
         groupType: r.group_type,
         attempt: r.attempt,
-        examDate: r.exam_date,
+        examDate: normDate,
         shift: r.shift,
       };
     }
