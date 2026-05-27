@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, type DragEvent, type ChangeEvent } from 'react';
 
 export const SLOT_OPTIONS_ATTEMPT_1 = [
   '11 April Shift 1',
@@ -67,6 +67,12 @@ export default function UploadDropzone({ onFileContent, onFileSelectSilent, isAt
   const [attempt, setAttempt] = useState(isAttempt1Open ? 'Attempt 1' : 'Attempt 2');
   const [slot, setSlot] = useState(isAttempt1Open ? SLOT_OPTIONS_ATTEMPT_1[0] : SLOT_OPTIONS_ATTEMPT_2[0]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const defaultAttempt = isAttempt1Open ? 'Attempt 1' : 'Attempt 2';
+    setAttempt(defaultAttempt);
+    setSlot(defaultAttempt === 'Attempt 1' ? SLOT_OPTIONS_ATTEMPT_1[0] : SLOT_OPTIONS_ATTEMPT_2[0]);
+  }, [isAttempt1Open, isAttempt2Open]);
 
   const processFile = useCallback((file: File) => {
     setError(null);

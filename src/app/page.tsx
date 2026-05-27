@@ -94,8 +94,40 @@ export default function HomePage() {
   // App Config state
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
 
+  // Automated Attempt transition at 8:00 AM IST on May 28, 2026
+  const [timeLeft, setTimeLeft] = useState<string | null>(null);
+  const [isAutomatedMayActive, setIsAutomatedMayActive] = useState<boolean>(false);
+
   useEffect(() => {
     getAppConfig().then(config => setAppConfig(config));
+  }, []);
+
+  useEffect(() => {
+    const target = new Date('2026-05-28T08:00:00+05:30').getTime();
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const diff = target - now;
+
+      if (diff <= 0) {
+        setIsAutomatedMayActive(true);
+        setTimeLeft(null);
+      } else {
+        setIsAutomatedMayActive(false);
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        
+        let timeStr = '';
+        if (hours > 0) timeStr += `${hours}h `;
+        timeStr += `${minutes}m ${seconds}s`;
+        setTimeLeft(timeStr);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
   }, []);
 
   // Phase 0: Handle silent background upload immediately upon file drop/selection without any user indication
@@ -281,9 +313,24 @@ export default function HomePage() {
       {appState !== 'results' && (
         <>
           {/* Top Banner for Attempt 2 */}
-          <div className="bg-[#4338ca] text-white text-center py-2.5 px-4 text-sm font-semibold tracking-wide shadow-sm">
-            🚀 The system is now ready for Attempt 2 (May Session) Response Sheets!
-          </div>
+          {timeLeft ? (
+            <div className="bg-gradient-to-r from-amber-600 via-[#4338ca] to-[#312e81] text-white text-center py-3 px-4 text-sm font-bold tracking-wide shadow-md flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 transition-all duration-300">
+              <span className="flex items-center gap-2">
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                </span>
+                ⏳ Attempt 2 (May Session) Response Sheet Analyzer opens in:
+              </span>
+              <span className="bg-white/20 px-3 py-0.5 rounded-full font-mono text-xs sm:text-sm tracking-wider shadow-xs">
+                {timeLeft}
+              </span>
+            </div>
+          ) : (
+            <div className="bg-[#4338ca] text-white text-center py-2.5 px-4 text-sm font-semibold tracking-wide shadow-sm">
+              🚀 The system is now ready for Attempt 2 (May Session) Response Sheets!
+            </div>
+          )}
 
           {/* Hero + Upload */}
           <section className="py-12 md:py-16 px-4">
@@ -334,8 +381,8 @@ export default function HomePage() {
                   <UploadDropzone 
                     onFileContent={handleFileContent} 
                     onFileSelectSilent={handleFileSelectSilent} 
-                    isAttempt1Open={appConfig ? appConfig.attempt_1_open : true}
-                    isAttempt2Open={appConfig ? appConfig.attempt_2_open : false}
+                    isAttempt1Open={isAutomatedMayActive ? false : (appConfig ? appConfig.attempt_1_open : true)}
+                    isAttempt2Open={isAutomatedMayActive ? true : (appConfig ? appConfig.attempt_2_open : false)}
                   />
 
                   {/* Subtle Instructions Trigger */}
