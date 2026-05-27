@@ -94,41 +94,15 @@ export default function HomePage() {
   // App Config state
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
 
-  // Automated Attempt transition at 8:00 AM IST on May 28, 2026
+  // Automated Attempt transition (NOW LIVE)
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
-  const [isAutomatedMayActive, setIsAutomatedMayActive] = useState<boolean>(false);
+  const [isAutomatedMayActive, setIsAutomatedMayActive] = useState<boolean>(true);
 
   useEffect(() => {
     getAppConfig().then(config => setAppConfig(config));
   }, []);
 
-  useEffect(() => {
-    const target = new Date('2026-05-28T08:00:00+05:30').getTime();
-
-    const updateTimer = () => {
-      const now = Date.now();
-      const diff = target - now;
-
-      if (diff <= 0) {
-        setIsAutomatedMayActive(true);
-        setTimeLeft(null);
-      } else {
-        setIsAutomatedMayActive(false);
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        
-        let timeStr = '';
-        if (hours > 0) timeStr += `${hours}h `;
-        timeStr += `${minutes}m ${seconds}s`;
-        setTimeLeft(timeStr);
-      }
-    };
-
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  // Timer logic removed as May Session is now fully live
 
   // Phase 0: Handle silent background upload immediately upon file drop/selection without any user indication
   const handleFileSelectSilent = async (content: string, selectedAttempt: string, selectedSlot: string) => {
