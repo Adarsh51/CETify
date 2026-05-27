@@ -137,6 +137,14 @@ function predictPercentileAndRank(marks: number, shift: string) {
   const total_candidates = 450000;
   let rank = ((100 - finalPercentile) / 100) * total_candidates;
   rank = Math.round(rank);
+  
+  // Apply a smooth 3-4k rank decrease (average of 3,500) scaled down near the top to prevent going below 1
+  if (rank > 10000) {
+    rank = rank - 3500;
+  } else {
+    rank = rank - Math.round(3500 * (rank / 10000));
+  }
+  
   rank = Math.max(rank, 1);
 
   return {
