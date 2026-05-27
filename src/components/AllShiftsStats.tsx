@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { getAllShiftsStats, GlobalShiftStats } from '@/utils/db';
 import { ShiftExplorerPanel } from './DeepAnalysis';
-import { getAppConfig } from '@/utils/admin';
 
 export default function AllShiftsStats() {
   const [stats, setStats] = useState<GlobalShiftStats[]>([]);
@@ -11,15 +10,8 @@ export default function AllShiftsStats() {
 
   async function loadStats() {
     try {
-      const config = await getAppConfig();
       const data = await getAllShiftsStats();
-      let pcmData = data.filter(d => d.groupType === 'PCM');
-      
-      // If Attempt 1 is closed, only show Attempt 2 data in the Shift Explorer
-      if (!config.attempt_1_open) {
-        pcmData = pcmData.filter(d => d.attempt === 'Attempt 2');
-      }
-      
+      const pcmData = data.filter(d => d.groupType === 'PCM');
       setStats(pcmData);
     } catch (err) {
       console.error('Failed to load global shift stats:', err);

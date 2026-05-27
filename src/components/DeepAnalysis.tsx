@@ -424,22 +424,39 @@ function MiniStat({ label, value, color }: { label: string; value: number | stri
 /* ──── Shift Explorer Panel ──── */
 export function ShiftExplorerPanel({ globalStats }: { globalStats: GlobalShiftStats[] }) {
   const [selectedKey, setSelectedKey] = useState(
-    globalStats.length > 0 ? `${globalStats[0].examDate}|${globalStats[0].shift}` : ''
+    globalStats.length > 0 ? `${globalStats[0].attempt}|${globalStats[0].examDate}|${globalStats[0].shift}` : ''
   );
-  const selected = globalStats.find(s => `${s.examDate}|${s.shift}` === selectedKey) || null;
+  const selected = globalStats.find(s => `${s.attempt}|${s.examDate}|${s.shift}` === selectedKey) || null;
+
+  // Group stats by attempt for optgroup rendering
+  const attempt1Shifts = globalStats.filter(s => s.attempt === 'Attempt 1');
+  const attempt2Shifts = globalStats.filter(s => s.attempt === 'Attempt 2');
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
       <select
         value={selectedKey}
         onChange={(e) => setSelectedKey(e.target.value)}
-        className="w-full sm:w-72 py-3 px-4 rounded-xl border border-gray-200 text-[#0f172a] bg-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#4338ca]/20 focus:border-[#4338ca] mb-5"
+        className="w-full sm:w-80 py-3 px-4 rounded-xl border border-gray-200 text-[#0f172a] bg-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#4338ca]/20 focus:border-[#4338ca] mb-5"
       >
-        {globalStats.map(s => (
-          <option key={`${s.examDate}|${s.shift}`} value={`${s.examDate}|${s.shift}`}>
-            {s.examDate} - {s.shift === 'Shift 1' ? 'Morning' : 'Evening'}
-          </option>
-        ))}
+        {attempt1Shifts.length > 0 && (
+          <optgroup label="📋 Attempt 1 — April Session">
+            {attempt1Shifts.map(s => (
+              <option key={`${s.attempt}|${s.examDate}|${s.shift}`} value={`${s.attempt}|${s.examDate}|${s.shift}`}>
+                {s.examDate} - {s.shift === 'Shift 1' ? 'Morning' : 'Evening'}
+              </option>
+            ))}
+          </optgroup>
+        )}
+        {attempt2Shifts.length > 0 && (
+          <optgroup label="🔥 Attempt 2 — May Session">
+            {attempt2Shifts.map(s => (
+              <option key={`${s.attempt}|${s.examDate}|${s.shift}`} value={`${s.attempt}|${s.examDate}|${s.shift}`}>
+                {s.examDate} - {s.shift === 'Shift 1' ? 'Morning' : 'Evening'}
+              </option>
+            ))}
+          </optgroup>
+        )}
       </select>
 
       {selected && (
