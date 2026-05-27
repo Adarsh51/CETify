@@ -327,8 +327,12 @@ export default function HomePage() {
               </span>
             </div>
           ) : (
-            <div className="bg-[#4338ca] text-white text-center py-2.5 px-4 text-sm font-semibold tracking-wide shadow-sm">
-              🚀 The system is now ready for Attempt 2 (May Session) Response Sheets!
+            <div className="bg-gradient-to-r from-red-600 via-indigo-600 to-indigo-700 text-white text-center py-3 px-4 text-sm font-bold tracking-wide shadow-sm flex items-center justify-center gap-2">
+              <span className="flex h-2 w-2 relative shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+              </span>
+              🔥 MHT CET Attempt 2 Score Calculation Live! Check Your Score Now
             </div>
           )}
 
