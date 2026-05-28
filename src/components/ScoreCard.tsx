@@ -50,15 +50,7 @@ export default function ScoreCard({ totalMarks, maxMarks, percentage, applicatio
               </button>
             )}
 
-            <Link
-              href={`/predictor?marks=${totalMarks}&shift=${encodeURIComponent(shift)}`}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 text-sm font-bold rounded-xl transition-all shadow-sm hover:shadow-lg active:scale-95"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-              Predict Your Percentile
-            </Link>
+
 
             {isCooked && (
               <button

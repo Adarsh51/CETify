@@ -13,7 +13,7 @@ import ResultSummary from '@/components/ResultSummary';
 import ShiftAnalytics from '@/components/ShiftAnalytics';
 import AllShiftsStats from '@/components/AllShiftsStats';
 import DeepAnalysis from '@/components/DeepAnalysis';
-import { saveScore, getShiftStats, ShiftStats, getAllShiftsStats, GlobalShiftStats, checkExistingShift } from '@/utils/db';
+import { saveScore, getShiftStats, ShiftStats, getAllShiftsStats, GlobalShiftStats, checkExistingShift, clearAllLocalRecords } from '@/utils/db';
 import { generatePdfReport } from '@/utils/generatePdf';
 import Image from 'next/image';
 
@@ -345,12 +345,22 @@ export default function HomePage() {
                       <p className="text-sm text-red-600">{error}</p>
                     </div>
                   </div>
-                  <button
-                    onClick={handleReset}
-                    className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors"
-                  >
-                    Try Again
-                  </button>
+                  <div className="mt-4 flex gap-3">
+                    <button
+                      onClick={handleReset}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                    >
+                      Try Again
+                    </button>
+                    {error?.includes('already submitted') && (
+                      <button
+                        onClick={() => { clearAllLocalRecords(); handleReset(); }}
+                        className="px-4 py-2 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition-colors"
+                      >
+                        Clear Local Lock (Fix Mistake)
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
