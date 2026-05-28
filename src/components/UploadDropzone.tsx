@@ -64,12 +64,12 @@ export default function UploadDropzone({ onFileContent, onFileSelectSilent, isAt
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [attempt, setAttempt] = useState(isAttempt1Open ? 'Attempt 1' : 'Attempt 2');
-  const [slot, setSlot] = useState(isAttempt1Open ? SLOT_OPTIONS_ATTEMPT_1[0] : SLOT_OPTIONS_ATTEMPT_2[0]);
+  const [attempt, setAttempt] = useState(isAttempt2Open ? 'Attempt 2' : 'Attempt 1');
+  const [slot, setSlot] = useState(isAttempt2Open ? SLOT_OPTIONS_ATTEMPT_2[0] : SLOT_OPTIONS_ATTEMPT_1[0]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const defaultAttempt = isAttempt1Open ? 'Attempt 1' : 'Attempt 2';
+    const defaultAttempt = isAttempt2Open ? 'Attempt 2' : 'Attempt 1';
     setAttempt(defaultAttempt);
     setSlot(defaultAttempt === 'Attempt 1' ? SLOT_OPTIONS_ATTEMPT_1[0] : SLOT_OPTIONS_ATTEMPT_2[0]);
   }, [isAttempt1Open, isAttempt2Open]);

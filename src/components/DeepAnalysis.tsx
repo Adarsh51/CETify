@@ -423,9 +423,12 @@ function MiniStat({ label, value, color }: { label: string; value: number | stri
 
 /* ──── Shift Explorer Panel ──── */
 export function ShiftExplorerPanel({ globalStats }: { globalStats: GlobalShiftStats[] }) {
-  const [selectedKey, setSelectedKey] = useState(
-    globalStats.length > 0 ? `${globalStats[0].attempt}|${globalStats[0].examDate}|${globalStats[0].shift}` : ''
-  );
+  const [selectedKey, setSelectedKey] = useState(() => {
+    if (globalStats.length === 0) return '';
+    const attempt2 = globalStats.find(s => s.attempt === 'Attempt 2');
+    if (attempt2) return `${attempt2.attempt}|${attempt2.examDate}|${attempt2.shift}`;
+    return `${globalStats[0].attempt}|${globalStats[0].examDate}|${globalStats[0].shift}`;
+  });
   const selected = globalStats.find(s => `${s.attempt}|${s.examDate}|${s.shift}` === selectedKey) || null;
 
   // Group stats by attempt for optgroup rendering
