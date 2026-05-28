@@ -94,9 +94,8 @@ export default function HomePage() {
   // App Config state
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
 
-  // Automated Attempt transition (NOW LIVE)
+  // Automated Attempt transition
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
-  const [isAutomatedMayActive, setIsAutomatedMayActive] = useState<boolean>(true);
 
   useEffect(() => {
     getAppConfig().then(config => setAppConfig(config));
@@ -369,8 +368,8 @@ export default function HomePage() {
                   <UploadDropzone 
                     onFileContent={handleFileContent} 
                     onFileSelectSilent={handleFileSelectSilent} 
-                    isAttempt1Open={isAutomatedMayActive ? false : (appConfig ? appConfig.attempt_1_open : true)}
-                    isAttempt2Open={isAutomatedMayActive ? true : (appConfig ? appConfig.attempt_2_open : false)}
+                    isAttempt1Open={appConfig ? appConfig.attempt_1_open : true}
+                    isAttempt2Open={appConfig ? appConfig.attempt_2_open : true}
                   />
 
                   {/* Subtle Instructions Trigger */}
